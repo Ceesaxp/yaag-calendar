@@ -2,7 +2,7 @@
  * Test script for Year Planner domain models
  */
 
-import { Event, YearPlanner } from './domain/models.js';
+import { Event, YearPlanner } from './models.js';
 
 /**
  * Run tests and log results

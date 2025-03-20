@@ -14,7 +14,7 @@ import EventEditorModal from './components/EventEditorModal.js';
 /**
  * Main application controller that orchestrates the Year Planner application
  */
-class YearPlannerApp {
+export class YearPlannerApp {
   /**
    * Create a new Year Planner application instance
    */

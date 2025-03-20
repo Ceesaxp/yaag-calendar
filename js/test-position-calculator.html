@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EventPositionCalculator Tests</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.5;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    h1 {
+      margin-top: 2rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.5rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #4682B4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 4px;
+      max-height: 400px;
+      overflow: auto;
+    }
+    #test-output {
+      white-space: pre-wrap;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>EventPositionCalculator Tests</h1>
+  
+  <p>Tests for the EventPositionCalculator, focusing on the fixed _calculateWeekBoundaries method.</p>
+  
+  <button id="run-tests">Run Tests</button>
+  
+  <pre id="test-output">Click "Run Tests" to begin...</pre>
+  
+  <script type="module">
+    // Import test modules
+    import { runTests } from './services/EventPositionCalculator.test.js';
+    
+    // Capture console output to display in the page
+    const output = document.getElementById('test-output');
+    const runButton = document.getElementById('run-tests');
+    
+    const originalConsoleLog = console.log;
+    const originalConsoleError = console.error;
+    const originalConsoleWarn = console.warn;
+    const originalConsoleAssert = console.assert;
+    
+    function captureOutput() {
+      output.textContent = '';
+      
+      console.log = function() {
+        const args = Array.from(arguments);
+        output.textContent += args.join(' ') + '\n';
+        originalConsoleLog.apply(console, args);
+      };
+      
+      console.error = function() {
+        const args = Array.from(arguments);
+        output.textContent += '❌ ERROR: ' + args.join(' ') + '\n';
+        originalConsoleError.apply(console, args);
+      };
+      
+      console.warn = function() {
+        const args = Array.from(arguments);
+        output.textContent += '⚠️ WARNING: ' + args.join(' ') + '\n';
+        originalConsoleWarn.apply(console, args);
+      };
+      
+      console.assert = function(condition, ...args) {
+        if (!condition) {
+          output.textContent += '❌ ASSERTION FAILED: ' + args.join(' ') + '\n';
+        }
+        originalConsoleAssert.apply(console, [condition, ...args]);
+      };
+    }
+    
+    function restoreConsole() {
+      console.log = originalConsoleLog;
+      console.error = originalConsoleError;
+      console.warn = originalConsoleWarn;
+      console.assert = originalConsoleAssert;
+    }
+    
+    runButton.addEventListener('click', function() {
+      captureOutput();
+      
+      try {
+        runTests();
+      } catch (error) {
+        console.error('Error running tests:', error);
+      } finally {
+        restoreConsole();
+      }
+    });
+  </script>
+</body>
+</html>
