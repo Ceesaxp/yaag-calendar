@@ -34,8 +34,10 @@ export class YearPlannerGrid extends HTMLElement {
       throw new Error('Events must be an array');
     }
 
+    console.log('YearPlannerGrid: Setting events', value.length, value);
     this._events = value;
     this._recalculateLayout();
+    console.log('YearPlannerGrid: After recalculating layout', this._layoutEvents.length, this._layoutEvents);
     this._render();
   }
 
@@ -54,11 +56,14 @@ export class YearPlannerGrid extends HTMLElement {
 
         .year-grid {
           display: grid;
-          grid-template-columns: 100px repeat(35, 1fr);
+          /* Use fixed width columns for days to ensure equal sizing */
+          grid-template-columns: 100px repeat(35, minmax(20px, 1fr));
           grid-template-rows: 40px repeat(12, 80px);
           gap: 1px;
           background-color: #e0e0e0;
           border: 1px solid #e0e0e0;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .header-cell, .month-cell, .day-cell {
@@ -92,22 +97,32 @@ export class YearPlannerGrid extends HTMLElement {
         .day-cell:hover {
           background-color: #f9f9f9;
         }
-        
+
         .inactive-cell {
           background-color: #f2f2f2;
           cursor: default;
         }
-        
+
         .inactive-cell:hover {
           background-color: #f2f2f2;
         }
 
+        .current-day {
+          background-color: #e6f7ff;
+          box-shadow: inset 0 0 0 2px #4682B4;
+        }
+        
+        .current-day:hover {
+          background-color: #d9f2ff;
+        }
+
         .day-number {
           position: absolute;
-          top: 2px;
-          right: 5px;
-          font-size: 0.8em;
+          top: 1px;
+          right: 3px;
+          font-size: 0.7em;
           color: #666;
+          opacity: 0.8;
         }
 
         .event {
@@ -133,6 +148,15 @@ export class YearPlannerGrid extends HTMLElement {
         .event.regular {
           background-color: #e3f2fd;
           border-left: 2px solid #2196f3;
+        }
+        
+        /* Debug styles for test events */
+        .event.test-event {
+          background-color: #ff5252;
+          border-left: 2px solid #b71c1c;
+          font-weight: bold;
+          box-shadow: 0 0 5px rgba(0,0,0,0.3);
+          z-index: 50 !important;
         }
 
         /* New styles for multi-segment events */
@@ -161,6 +185,15 @@ export class YearPlannerGrid extends HTMLElement {
           border-left: 2px solid #2196f3;
         }
         
+        /* Debug styles for test event segments */
+        .event-segment.test-event {
+          background-color: #ff5252;
+          border-left: 2px solid #b71c1c;
+          font-weight: bold;
+          box-shadow: 0 0 5px rgba(0,0,0,0.3);
+          z-index: 50 !important;
+        }
+
         /* Middle segment styling - clearer indication */
         .event-segment.middle-segment {
           background-image: linear-gradient(to right, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 10%, rgba(255,255,255,0) 90%, rgba(255,255,255,0.1) 100%);
@@ -223,13 +256,13 @@ export class YearPlannerGrid extends HTMLElement {
           color: rgba(0,0,0,0.5);
           text-shadow: 0 0 2px rgba(255,255,255,0.8);
         }
-        
+
         /* Month boundary indicators - new */
         .event-segment.month-boundary-start {
           border-left-width: 3px;
           border-left-style: dashed;
         }
-        
+
         .event-segment.month-boundary-end {
           border-right-width: 3px;
           border-right-style: dashed;
@@ -244,7 +277,7 @@ export class YearPlannerGrid extends HTMLElement {
           z-index: 20;
           transform: translateY(-1px);
         }
-        
+
         /* Connected segments highlight */
         .event-segment[data-event-id].hover-connected {
           outline: 1px solid rgba(0, 0, 0, 0.3);
@@ -261,6 +294,25 @@ export class YearPlannerGrid extends HTMLElement {
           display: flex;
           gap: 2px;
           font-size: 0.7em;
+        }
+        
+        .event-icon {
+          display: inline-block;
+          margin-right: 2px;
+          font-size: 0.85em;
+          cursor: help;
+        }
+        
+        .recurring-icon {
+          color: #9c27b0;
+        }
+        
+        .starts-pm-icon {
+          color: #ff9800;
+        }
+        
+        .ends-am-icon {
+          color: #2196f3;
         }
 
         .year-selector {
@@ -322,7 +374,35 @@ export class YearPlannerGrid extends HTMLElement {
   }
 
   _renderDayCells(grid) {
+    // List of month names
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    
+    // Get current date to highlight today
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const currentDay = today.getDate();
+
     for (let month = 0; month < 12; month++) {
+      // Add month name cell at the start of each row
+      const monthCell = document.createElement('div');
+      monthCell.className = 'month-cell';
+      monthCell.textContent = months[month];
+      grid.appendChild(monthCell);
+
       // Get the first day of the month
       const firstDay = new Date(this._year, month, 1);
       // Get the last day of the month
@@ -333,18 +413,10 @@ export class YearPlannerGrid extends HTMLElement {
       let firstDayOfWeek = firstDay.getDay() - 1;
       if (firstDayOfWeek < 0) firstDayOfWeek = 6; // Sunday becomes 6
 
-      // Calculate how many complete weeks plus remaining days
-      const totalDays = firstDayOfWeek + daysInMonth;
-      const totalWeeks = Math.ceil(totalDays / 7);
-      
       // Create day cells for each position in the 5-week grid
       for (let position = 0; position < 35; position++) {
         const dayCell = document.createElement('div');
         dayCell.className = 'day-cell';
-
-        // Calculate week and day position 
-        const weekIndex = Math.floor(position / 7);
-        const dayOfWeek = position % 7;
 
         // Calculate the day number (1-based)
         const dayOffset = position - firstDayOfWeek;
@@ -357,6 +429,11 @@ export class YearPlannerGrid extends HTMLElement {
           // Store data attributes for identifying the cell
           dayCell.dataset.month = month;
           dayCell.dataset.day = dayNumber;
+          
+          // Check if this is today's date and highlight it
+          if (this._year === currentYear && month === currentMonth && dayNumber === currentDay) {
+            dayCell.classList.add('current-day');
+          }
 
           // Add click event to emit day-click custom event
           dayCell.addEventListener('click', (e) => {
@@ -386,7 +463,39 @@ export class YearPlannerGrid extends HTMLElement {
   }
 
   _renderEvents(grid) {
-    if (!this._layoutEvents || this._layoutEvents.length === 0) return;
+    console.log('YearPlannerGrid: Rendering events', this._layoutEvents ? this._layoutEvents.length : 0);
+    
+    // Add a hardcoded test event for debugging
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentDay = today.getDate();
+    
+    // Create a direct test event with hardcoded positions
+    const directTestEvent = {
+      id: 'direct-test-event',
+      title: 'FORCED TEST EVENT',
+      description: 'This event bypasses positioning calculations',
+      startDate: today,
+      endDate: today,
+      position: {
+        swimLane: 0
+      },
+      isTestEvent: true
+    };
+    
+    console.log('YearPlannerGrid: Adding direct test event', directTestEvent);
+    
+    if (!this._layoutEvents || this._layoutEvents.length === 0) {
+      console.log('YearPlannerGrid: No layout events to render, using only direct test event');
+      this._layoutEvents = [directTestEvent];
+    } else {
+      console.log('YearPlannerGrid: Adding direct test event to existing events');
+      // Still render the original events too
+      this._layoutEvents.push(directTestEvent);
+      
+      // Debug: Log the layout events data structure
+      console.log('YearPlannerGrid: Layout Events Structure:', JSON.stringify(this._layoutEvents.slice(0, 2), null, 2));
+    }
 
     // Store all created event segments by event ID for hover effect
     const eventSegments = new Map();
@@ -395,43 +504,84 @@ export class YearPlannerGrid extends HTMLElement {
       const eventId = layoutEvent.id;
       const position = layoutEvent.position;
       
+      // Debug: Check if position is valid
+      if (!position) {
+        console.error('YearPlannerGrid: Event has no position', layoutEvent);
+        return;
+      }
+
       // Create a list to store all segments for this event
       if (!eventSegments.has(eventId)) {
         eventSegments.set(eventId, []);
       }
-      
+
       // Get all cells in the grid
-      const allDayCells = Array.from(grid.querySelectorAll('.day-cell'))
-        .filter(cell => !cell.dataset.empty);
+      const allDayCells = Array.from(grid.querySelectorAll('.day-cell')).filter(
+        (cell) => !cell.dataset.empty,
+      );
+      console.log('YearPlannerGrid: Found day cells for events', allDayCells.length);
       
+      // Debug: Log a sample of day cells to verify data attributes
+      if (allDayCells.length > 0) {
+        const sampleCells = allDayCells.slice(0, 3);
+        console.log('YearPlannerGrid: Sample day cells:', sampleCells.map(cell => ({
+          month: cell.dataset.month,
+          day: cell.dataset.day,
+          empty: cell.dataset.empty,
+          rect: {
+            top: cell.getBoundingClientRect().top,
+            left: cell.getBoundingClientRect().left
+          }
+        })));
+      }
+
       // Check if we have segments for multi-week or multi-month events
       if (position.segments && position.segments.length > 0) {
         // Render each segment separately
-        position.segments.forEach(segment => {
+        position.segments.forEach((segment) => {
           // Find the cells for this segment
-          const segmentCells = allDayCells.filter(cell => {
+          const segmentCells = allDayCells.filter((cell) => {
             const month = parseInt(cell.dataset.month, 10);
             const day = parseInt(cell.dataset.day, 10);
-            
+
             // Skip if not in the right month
             if (month !== segment.month) return false;
-            
+
             // Get day of week for this cell
             const date = new Date(this._year, month, day);
             const dayOfWeek = this._getDayOfWeek(date);
             
+            // Debug: Log all cell evaluations for event segments
+            console.log(`YearPlannerGrid: Evaluating cell for segment - event:${layoutEvent.id} month:${month} day:${day} dayOfWeek:${dayOfWeek} segment range:${segment.startDay}-${segment.endDay}`);
+
             // Check if the day falls within the segment's day range
+            let isInRange;
+            
+            // Always check the actual date against the event's date range
+            const isDateInRange = 
+              layoutEvent.startDate <= date && date <= layoutEvent.endDate;
+              
+            // And check day of week against segment range
             if (segment.startDay <= segment.endDay) {
               // Normal case: startDay to endDay
-              return dayOfWeek >= segment.startDay && dayOfWeek <= segment.endDay;
+              isInRange = dayOfWeek >= segment.startDay && dayOfWeek <= segment.endDay && isDateInRange;
             } else {
               // Wrapped around the week: startDay to end of week OR start of week to endDay
-              return dayOfWeek >= segment.startDay || dayOfWeek <= segment.endDay;
+              isInRange = (dayOfWeek >= segment.startDay || dayOfWeek <= segment.endDay) && isDateInRange;
             }
+            
+            // Debug date range
+            console.log(`YearPlannerGrid: Date range check for segment - date:${date.toISOString()} in event range:${layoutEvent.startDate.toISOString()} - ${layoutEvent.endDate.toISOString()} = ${isDateInRange}`);
+            
+            if (isInRange) {
+              console.log(`YearPlannerGrid: Cell matches segment - month:${month} day:${day} dayOfWeek:${dayOfWeek} in range:${segment.startDay}-${segment.endDay}`);
+            }
+            
+            return isInRange;
           });
-          
+
           if (segmentCells.length === 0) return;
-          
+
           // Create segment element
           this._createEventSegment(
             grid,
@@ -439,35 +589,79 @@ export class YearPlannerGrid extends HTMLElement {
             position,
             segment,
             segmentCells,
-            eventSegments.get(eventId)
+            eventSegments.get(eventId),
           );
         });
       } else {
         // Simple single-day or single-week event
         // Find the cells that match this event
-        const eventCells = allDayCells.filter(cell => {
+        const eventCells = allDayCells.filter((cell) => {
           const month = parseInt(cell.dataset.month, 10);
           const day = parseInt(cell.dataset.day, 10);
           const date = new Date(this._year, month, day);
           
+          // Fix: Compare dates by their day, month, and year components only
+          const isSameOrAfterStartDate = 
+            date.getFullYear() > layoutEvent.startDate.getFullYear() ||
+            (date.getFullYear() === layoutEvent.startDate.getFullYear() && 
+             (date.getMonth() > layoutEvent.startDate.getMonth() || 
+              (date.getMonth() === layoutEvent.startDate.getMonth() && 
+               date.getDate() >= layoutEvent.startDate.getDate())));
+               
+          const isSameOrBeforeEndDate = 
+            date.getFullYear() < layoutEvent.endDate.getFullYear() ||
+            (date.getFullYear() === layoutEvent.endDate.getFullYear() && 
+             (date.getMonth() < layoutEvent.endDate.getMonth() || 
+              (date.getMonth() === layoutEvent.endDate.getMonth() && 
+               date.getDate() <= layoutEvent.endDate.getDate())));
+               
+          const isInRange = isSameOrAfterStartDate && isSameOrBeforeEndDate;
+          
+          // Debug: Log date comparison for single-day/single-week events
+          console.log(`YearPlannerGrid: Evaluating cell for simple event - event:${layoutEvent.id} cell date:${date.toISOString()} (${month}/${day}) event range:${layoutEvent.startDate.toISOString()} - ${layoutEvent.endDate.toISOString()} matches:${isInRange}`);
+
           // Check if this date is within the event's range
-          return date >= layoutEvent.startDate && date <= layoutEvent.endDate;
+          return isInRange;
         });
-        
-        if (eventCells.length === 0) return;
-        
+
+        if (eventCells.length === 0) {
+          console.log(`YearPlannerGrid: No matching cells found for event: ${layoutEvent.id}`);
+          
+          // For debug event, force create at least one cell
+          if (layoutEvent.id === 'direct-test-event') {
+            console.log('YearPlannerGrid: Forcing cell creation for direct test event');
+            
+            // Find a cell for the current day or first available cell
+            const currentDayCell = allDayCells.find(cell => {
+              const month = parseInt(cell.dataset.month, 10);
+              const day = parseInt(cell.dataset.day, 10);
+              return month === today.getMonth() && day === today.getDate();
+            });
+            
+            if (currentDayCell) {
+              console.log('YearPlannerGrid: Found current day cell for forced event');
+              eventCells.push(currentDayCell);
+            } else if (allDayCells.length > 0) {
+              console.log('YearPlannerGrid: Using first available cell for forced event');
+              eventCells.push(allDayCells[0]);
+            }
+          } else {
+            return;
+          }
+        }
+
         // For multi-day events that don't cross week boundaries
         if (eventCells.length > 1) {
           // Group cells by week
           const weekGroups = this._groupCellsByWeek(eventCells);
-          
+
           // Create an event element for each week group
-          weekGroups.forEach(group => {
+          weekGroups.forEach((group) => {
             this._createSimpleEventSpan(
               layoutEvent,
               position,
               group,
-              eventSegments.get(eventId)
+              eventSegments.get(eventId),
             );
           });
         } else {
@@ -476,74 +670,74 @@ export class YearPlannerGrid extends HTMLElement {
             layoutEvent,
             position,
             eventCells,
-            eventSegments.get(eventId)
+            eventSegments.get(eventId),
           );
         }
       }
     });
-    
+
     // Enhance hover effect to highlight all segments of the same event with better coordination
     eventSegments.forEach((segments, eventId) => {
       // Use debounced approach to reduce flickering
       let hoverTimeout;
       const hoverDelay = 50; // ms
-      
-      segments.forEach(segment => {
+
+      segments.forEach((segment) => {
         // Handle mouse enter with delay
         segment.addEventListener('mouseenter', () => {
           clearTimeout(hoverTimeout);
-          
+
           // Add immediate class to hovered segment
           segment.classList.add('hover');
-          
+
           // Add connected class to all related segments with slight delay
           hoverTimeout = setTimeout(() => {
-            segments.forEach(s => {
+            segments.forEach((s) => {
               if (s !== segment) {
                 s.classList.add('hover-connected');
               }
             });
           }, hoverDelay);
         });
-        
+
         // Handle mouse leave
         segment.addEventListener('mouseleave', () => {
           clearTimeout(hoverTimeout);
-          
+
           // Remove immediate class from hovered segment
           segment.classList.remove('hover');
-          
+
           // Remove connected class from all segments with delay
           hoverTimeout = setTimeout(() => {
-            segments.forEach(s => {
+            segments.forEach((s) => {
               s.classList.remove('hover-connected');
             });
           }, hoverDelay);
         });
-        
+
         // Add keyboard accessibility
         segment.setAttribute('tabindex', '0');
-        
+
         // Add keyboard focus events for accessibility
         segment.addEventListener('focus', () => {
           segment.classList.add('hover');
-          segments.forEach(s => {
+          segments.forEach((s) => {
             if (s !== segment) {
               s.classList.add('hover-connected');
             }
           });
         });
-        
+
         segment.addEventListener('blur', () => {
           segment.classList.remove('hover');
-          segments.forEach(s => {
+          segments.forEach((s) => {
             s.classList.remove('hover-connected');
           });
         });
       });
     });
   }
-  
+
   /**
    * Create a segment for a multi-week or multi-month event
    * @param {HTMLElement} grid - The grid container
@@ -554,64 +748,88 @@ export class YearPlannerGrid extends HTMLElement {
    * @param {Array} segmentList - List to store all segments for this event
    * @private
    */
-  _createEventSegment(grid, layoutEvent, position, segment, cells, segmentList) {
+  _createEventSegment(
+    grid,
+    layoutEvent,
+    position,
+    segment,
+    cells,
+    segmentList,
+  ) {
+    console.log('YearPlannerGrid: Creating event segment', 
+                layoutEvent.id, 
+                `segment: ${segment.month}/${segment.startDay}-${segment.endDay}`,
+                `cells: ${cells.length}`);
+    
     // Sort cells by position in the grid
     cells.sort((a, b) => {
       const aRect = a.getBoundingClientRect();
       const bRect = b.getBoundingClientRect();
-      
+
       if (aRect.top !== bRect.top) {
         return aRect.top - bRect.top; // Sort by row first
       }
-      
+
       return aRect.left - bRect.left; // Then by column
     });
-    
-    if (cells.length === 0) return;
-    
+
+    if (cells.length === 0) {
+      console.warn('YearPlannerGrid: No cells for segment', segment);
+      return;
+    }
+
     const firstCell = cells[0];
     const lastCell = cells[cells.length - 1];
-    
+
     // Get month for first and last cell to check for month boundaries
     const firstCellMonth = parseInt(firstCell.dataset.month, 10);
     const lastCellMonth = parseInt(lastCell.dataset.month, 10);
-    
+
     // Check if this segment spans months within the segment itself
     const isMonthBoundarySegment = firstCellMonth !== lastCellMonth;
-    
+
     // Create segment element
     const segmentEl = document.createElement('div');
-    segmentEl.className = layoutEvent.isPublicHoliday
-      ? 'event-segment holiday'
-      : 'event-segment regular';
+    let className = 'event-segment';
     
+    if (layoutEvent.isPublicHoliday) {
+      className += ' holiday';
+    } else if (layoutEvent.isTestEvent) {
+      className += ' test-event';
+    } else {
+      className += ' regular';
+    }
+    
+    segmentEl.className = className;
+
     // Set event ID for hover effects
     segmentEl.dataset.eventId = layoutEvent.id;
-    segmentEl.dataset.originalEventId = layoutEvent.originalEventId || layoutEvent.id;
-    
+    segmentEl.dataset.originalEventId =
+      layoutEvent.originalEventId || layoutEvent.id;
+
     // Add middle segment class if applicable
     if (!segment.isFirstSegment && !segment.isLastSegment) {
       segmentEl.classList.add('middle-segment');
     }
-    
+
     // Add title and information
     if (segment.isFirstSegment) {
       // First segment shows full title and indicators
       segmentEl.textContent = layoutEvent.title;
-      
+
       // Add indicators
       let indicators = '';
-      if (layoutEvent.isRecurring) indicators += '↻ ';
-      if (layoutEvent.startsPM && segment.isFirstSegment) indicators += '◑ ';
-      if (layoutEvent.endsAM && segment.isLastSegment) indicators += '◐ ';
-      
+      if (layoutEvent.isRecurring) indicators += '<span class="event-icon recurring-icon" title="Recurring event">↻</span>';
+      if (layoutEvent.startsPM && segment.isFirstSegment) indicators += '<span class="event-icon starts-pm-icon" title="Starts in afternoon">◑</span>';
+      if (layoutEvent.endsAM && segment.isLastSegment) indicators += '<span class="event-icon ends-am-icon" title="Ends in morning">◐</span>';
+
       if (indicators) {
         const indicatorsSpan = document.createElement('span');
         indicatorsSpan.className = 'event-indicators';
-        indicatorsSpan.textContent = indicators;
+        indicatorsSpan.innerHTML = indicators;  // Use innerHTML to render the HTML spans
         segmentEl.appendChild(indicatorsSpan);
       }
-      
+
       // Add date range for multi-day events
       if (layoutEvent.formattedDateRange) {
         const dateRangeSpan = document.createElement('span');
@@ -621,45 +839,46 @@ export class YearPlannerGrid extends HTMLElement {
       }
     } else if (!segment.isFirstSegment && !segment.isLastSegment) {
       // Middle segments show brief identifier
-      const briefTitle = layoutEvent.title.length > 12 ? 
-        layoutEvent.title.substring(0, 10) + '...' : 
-        layoutEvent.title;
-      segmentEl.textContent = '⟼ ' + briefTitle; 
+      const briefTitle =
+        layoutEvent.title.length > 12
+          ? layoutEvent.title.substring(0, 10) + '...'
+          : layoutEvent.title;
+      segmentEl.textContent = '⟼ ' + briefTitle;
     } else if (segment.isLastSegment) {
       // End segments show arrow and title
       segmentEl.textContent = '⟹ ' + layoutEvent.title;
-      
+
       // Add end date for multi-day events
       if (layoutEvent.formattedDateRange) {
         const endDate = new Date(layoutEvent.endDate);
         const options = { month: 'short', day: 'numeric' };
         const endDateStr = endDate.toLocaleDateString(undefined, options);
-        
+
         const dateEndSpan = document.createElement('span');
         dateEndSpan.className = 'event-date-range';
         dateEndSpan.textContent = 'ends: ' + endDateStr;
         segmentEl.appendChild(dateEndSpan);
       }
     }
-    
+
     // Add continuation indicators
     if (!segment.isFirstSegment) {
       segmentEl.classList.add('continues-left');
     }
-    
+
     if (!segment.isLastSegment) {
       segmentEl.classList.add('continues-right');
     }
-    
+
     // Add month continuation indicators
     if (position.continuesUp) {
       segmentEl.classList.add('continues-up');
     }
-    
+
     if (position.continuesDown) {
       segmentEl.classList.add('continues-down');
     }
-    
+
     // Add month boundary indicators for segments that cross month boundaries
     if (isMonthBoundarySegment) {
       // If first day of this segment is first day of its month
@@ -667,23 +886,27 @@ export class YearPlannerGrid extends HTMLElement {
       if (firstCellDay === 1) {
         segmentEl.classList.add('month-boundary-start');
       }
-      
+
       // If last day of this segment is last day of its month
       const lastCellDay = parseInt(lastCell.dataset.day, 10);
-      const lastDayInMonth = new Date(this._year, lastCellMonth + 1, 0).getDate();
+      const lastDayInMonth = new Date(
+        this._year,
+        lastCellMonth + 1,
+        0,
+      ).getDate();
       if (lastCellDay === lastDayInMonth) {
         segmentEl.classList.add('month-boundary-end');
       }
     }
-    
+
     // Calculate position and size
     const height = 16; // Fixed height for events
     const swimLaneOffset = position.swimLane * height;
     const topOffset = 20; // Offset from top to avoid day number
-    
+
     segmentEl.style.top = `${swimLaneOffset + topOffset}px`;
     segmentEl.style.height = `${height}px`;
-    
+
     // For single-cell segments
     if (cells.length === 1) {
       segmentEl.style.left = '0';
@@ -694,26 +917,26 @@ export class YearPlannerGrid extends HTMLElement {
       const firstRect = firstCell.getBoundingClientRect();
       const lastRect = lastCell.getBoundingClientRect();
       const width = lastRect.right - firstRect.left;
-      
+
       // Position relative to the first cell
       segmentEl.style.width = `${width - 2}px`; // Subtract margin
       firstCell.appendChild(segmentEl);
       segmentEl.style.zIndex = 15; // Make sure it overlays other cells
     }
-    
+
     // Add click event handler
     this._addEventClickHandler(segmentEl, layoutEvent);
-    
+
     // Add to segment list for hover effects
     segmentList.push(segmentEl);
-    
+
     // Add tooltip with full event details
     const tooltipTitle = layoutEvent.title;
     const tooltipDates = layoutEvent.formattedDateRange || '';
     const tooltipContent = `${tooltipTitle}\n${tooltipDates}${layoutEvent.description ? `\n${layoutEvent.description}` : ''}`;
     segmentEl.title = tooltipContent;
   }
-  
+
   /**
    * Create a simple event span for non-segmented events
    * @param {Object} layoutEvent - The event layout data
@@ -724,40 +947,49 @@ export class YearPlannerGrid extends HTMLElement {
    */
   _createSimpleEventSpan(layoutEvent, position, cells, segmentList) {
     if (cells.length === 0) return;
-    
+
     const firstCell = cells[0];
     const lastCell = cells[cells.length - 1];
-    
+
     // Get month information for month boundary detection
     const firstCellMonth = parseInt(firstCell.dataset.month, 10);
     const lastCellMonth = parseInt(lastCell.dataset.month, 10);
     const isMonthBoundaryEvent = firstCellMonth !== lastCellMonth;
-    
+
     // Create event element
     const eventEl = document.createElement('div');
-    eventEl.className = layoutEvent.isPublicHoliday
-      ? 'event holiday'
-      : 'event regular';
+    let className = 'event';
+    
+    if (layoutEvent.isPublicHoliday) {
+      className += ' holiday';
+    } else if (layoutEvent.isTestEvent) {
+      className += ' test-event';
+    } else {
+      className += ' regular';
+    }
+    
+    eventEl.className = className;
     eventEl.textContent = layoutEvent.title;
     eventEl.dataset.eventId = layoutEvent.id;
-    eventEl.dataset.originalEventId = layoutEvent.originalEventId || layoutEvent.id;
-    
+    eventEl.dataset.originalEventId =
+      layoutEvent.originalEventId || layoutEvent.id;
+
     // Add transition for smoother hover effects
     eventEl.style.transition = 'all 0.15s ease-in-out';
-    
+
     // Add indicators
     let indicators = '';
-    if (layoutEvent.isRecurring) indicators += '↻ ';
-    if (layoutEvent.startsPM) indicators += '◑ ';
-    if (layoutEvent.endsAM) indicators += '◐ ';
-    
+    if (layoutEvent.isRecurring) indicators += '<span class="event-icon recurring-icon" title="Recurring event">↻</span>';
+    if (layoutEvent.startsPM) indicators += '<span class="event-icon starts-pm-icon" title="Starts in afternoon">◑</span>';
+    if (layoutEvent.endsAM) indicators += '<span class="event-icon ends-am-icon" title="Ends in morning">◐</span>';
+
     if (indicators) {
       const indicatorsSpan = document.createElement('span');
       indicatorsSpan.className = 'event-indicators';
-      indicatorsSpan.textContent = indicators;
+      indicatorsSpan.innerHTML = indicators;  // Use innerHTML to render the HTML spans
       eventEl.appendChild(indicatorsSpan);
     }
-    
+
     // Add date range for multi-day events
     if (cells.length > 1 && layoutEvent.formattedDateRange) {
       const dateRangeSpan = document.createElement('span');
@@ -765,35 +997,41 @@ export class YearPlannerGrid extends HTMLElement {
       dateRangeSpan.textContent = layoutEvent.formattedDateRange;
       eventEl.appendChild(dateRangeSpan);
     }
-    
+
     // Add month boundary indicators for events that cross months
     if (isMonthBoundaryEvent) {
       // Apply month boundary styles consistent with segmented events
-      const lastDayInFirstMonth = new Date(this._year, firstCellMonth + 1, 0).getDate();
+      const lastDayInFirstMonth = new Date(
+        this._year,
+        firstCellMonth + 1,
+        0,
+      ).getDate();
       const firstDayInLastMonth = 1;
-      
+
       const firstCellDay = parseInt(firstCell.dataset.day, 10);
       const lastCellDay = parseInt(lastCell.dataset.day, 10);
-      
+
       if (firstCellDay === 1) {
         eventEl.style.borderLeftWidth = '3px';
         eventEl.style.borderLeftStyle = 'dashed';
       }
-      
-      if (lastCellDay === new Date(this._year, lastCellMonth + 1, 0).getDate()) {
+
+      if (
+        lastCellDay === new Date(this._year, lastCellMonth + 1, 0).getDate()
+      ) {
         eventEl.style.borderRightWidth = '3px';
         eventEl.style.borderRightStyle = 'dashed';
         eventEl.style.borderRightColor = 'inherit';
       }
     }
-    
+
     // Calculate position and size
     const height = 16; // Fixed height for events
     const swimLaneOffset = position.swimLane * height;
-    
+
     eventEl.style.top = `${swimLaneOffset + 20}px`; // 20px offset from top to avoid day number
     eventEl.style.height = `${height}px`;
-    
+
     // For single-cell events
     if (cells.length === 1) {
       firstCell.appendChild(eventEl);
@@ -802,32 +1040,32 @@ export class YearPlannerGrid extends HTMLElement {
       const firstRect = firstCell.getBoundingClientRect();
       const lastRect = lastCell.getBoundingClientRect();
       const width = lastRect.right - firstRect.left;
-      
+
       eventEl.style.width = `${width - 2}px`; // Subtract margin
       firstCell.appendChild(eventEl);
       eventEl.style.zIndex = 10; // Make sure it overlays other cells
     }
-    
+
     // Add click event handler
     this._addEventClickHandler(eventEl, layoutEvent);
-    
+
     // Add to segment list for hover effects
     segmentList.push(eventEl);
-    
+
     // Add keyboard accessibility
     eventEl.setAttribute('tabindex', '0');
-    
+
     // Add tooltip with full event details
     const tooltipTitle = layoutEvent.title;
     const tooltipDates = layoutEvent.formattedDateRange || '';
     const tooltipContent = `${tooltipTitle}\n${tooltipDates}${layoutEvent.description ? `\n${layoutEvent.description}` : ''}`;
     eventEl.title = tooltipContent;
-    
+
     // Add ARIA attributes for accessibility
     eventEl.setAttribute('role', 'button');
     eventEl.setAttribute('aria-label', tooltipContent.replace(/\n/g, ', '));
   }
-  
+
   /**
    * Add click event handler to an event element with keyboard accessibility
    * @param {HTMLElement} element - The event element
@@ -838,13 +1076,13 @@ export class YearPlannerGrid extends HTMLElement {
     // Create a handler function to reuse for both click and keyboard
     const handleEventActivation = (e) => {
       e.stopPropagation(); // Prevent triggering day-click
-      
+
       // Find the original event if this is a segment or instance
       const originalEventId = layoutEvent.originalEventId || layoutEvent.id;
-      const originalEvent = this._events.find(event => 
-        event.id === originalEventId || event.id === layoutEvent.id
+      const originalEvent = this._events.find(
+        (event) => event.id === originalEventId || event.id === layoutEvent.id,
       );
-      
+
       const clickEvent = new CustomEvent('event-click', {
         detail: {
           eventId: layoutEvent.id,
@@ -854,13 +1092,13 @@ export class YearPlannerGrid extends HTMLElement {
         bubbles: true,
         composed: true,
       });
-      
+
       this.dispatchEvent(clickEvent);
     };
-    
+
     // Mouse click event
     element.addEventListener('click', handleEventActivation);
-    
+
     // Keyboard event for accessibility
     element.addEventListener('keydown', (e) => {
       // Activate on Enter or Space
@@ -869,17 +1107,17 @@ export class YearPlannerGrid extends HTMLElement {
         handleEventActivation(e);
       }
     });
-    
+
     // Add proper ARIA attributes
     element.setAttribute('role', 'button');
     element.setAttribute('aria-label', `Event: ${layoutEvent.title}`);
-    
+
     // Add aria-description with more details if available
     if (layoutEvent.description) {
       element.setAttribute('aria-description', layoutEvent.description);
     }
   }
-  
+
   /**
    * Group cells by week for proper event rendering
    * @param {Array} cells - The cells to group
@@ -889,23 +1127,23 @@ export class YearPlannerGrid extends HTMLElement {
   _groupCellsByWeek(cells) {
     const weekGroups = [];
     let currentGroup = [cells[0]];
-    
+
     for (let i = 1; i < cells.length; i++) {
       const prevCell = cells[i - 1];
       const currentCell = cells[i];
-      
+
       const prevDay = parseInt(prevCell.dataset.day, 10);
       const prevMonth = parseInt(prevCell.dataset.month, 10);
       const currentDay = parseInt(currentCell.dataset.day, 10);
       const currentMonth = parseInt(currentCell.dataset.month, 10);
-      
+
       // Check if this is a consecutive day in the same week
       const prevDate = new Date(this._year, prevMonth, prevDay);
       const currentDate = new Date(this._year, currentMonth, currentDay);
       const diffDays = Math.round(
         (currentDate - prevDate) / (1000 * 60 * 60 * 24),
       );
-      
+
       if (diffDays === 1 && prevDate.getDay() !== 0) {
         // Same week, add to current group
         currentGroup.push(currentCell);
@@ -915,13 +1153,13 @@ export class YearPlannerGrid extends HTMLElement {
         currentGroup = [currentCell];
       }
     }
-    
+
     // Add the last group
     weekGroups.push(currentGroup);
-    
+
     return weekGroups;
   }
-  
+
   /**
    * Get the day of week (0-6, where 0 is Monday, 6 is Sunday)
    * @param {Date} date - The date
@@ -932,22 +1170,32 @@ export class YearPlannerGrid extends HTMLElement {
     // Convert from JS day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
     let day = date.getDay() - 1;
     if (day < 0) day = 6;
+    
+    // Debug logging
+    console.log(`_getDayOfWeek: ${date.toISOString()} => JS day: ${date.getDay()} => Our day: ${day}`);
+    
     return day;
   }
 
   _setupEventListeners() {
-    // Year navigation
-    this.shadowRoot
-      .getElementById('prev-year')
-      .addEventListener('click', () => {
-        this.year = this._year - 1;
-      });
-
-    this.shadowRoot
-      .getElementById('next-year')
-      .addEventListener('click', () => {
-        this.year = this._year + 1;
-      });
+    // Need to defer year navigation setup because buttons don't exist yet at initial connection
+    setTimeout(() => {
+      // Year navigation
+      const prevYearBtn = this.shadowRoot.getElementById('prev-year');
+      const nextYearBtn = this.shadowRoot.getElementById('next-year');
+      
+      if (prevYearBtn) {
+        prevYearBtn.addEventListener('click', () => {
+          this.year = this._year - 1;
+        });
+      }
+      
+      if (nextYearBtn) {
+        nextYearBtn.addEventListener('click', () => {
+          this.year = this._year + 1;
+        });
+      }
+    }, 0);
   }
 
   _recalculateLayout() {
@@ -961,8 +1209,12 @@ export class YearPlannerGrid extends HTMLElement {
     const yearEnd = new Date(this._year, 11, 31, 23, 59, 59, 999);
 
     const eventsInYear = this._events.filter((event) => {
-      const eventStart = event.startDate instanceof Date ? event.startDate : new Date(event.startDate);
-      const eventEnd = event.endDate instanceof Date ? event.endDate : new Date(event.endDate);
+      const eventStart =
+        event.startDate instanceof Date
+          ? event.startDate
+          : new Date(event.startDate);
+      const eventEnd =
+        event.endDate instanceof Date ? event.endDate : new Date(event.endDate);
       return eventEnd >= yearStart && eventStart <= yearEnd;
     });
 
@@ -970,7 +1222,7 @@ export class YearPlannerGrid extends HTMLElement {
     if (this._positionCalculator) {
       // Reset any previous data and calculate for the current year
       this._positionCalculator.resetOccupancyGrid();
-      
+
       // Calculate positions for all events in the year
       this._layoutEvents = this._positionCalculator.calculatePositions(
         eventsInYear,

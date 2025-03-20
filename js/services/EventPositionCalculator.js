@@ -141,7 +141,7 @@ class EventPositionCalculator {
   constructor(options = {}) {
     // Configuration
     this.maxSwimLanes = options.maxSwimLanes || 5;
-    this.holidayLane = options.holidayLane || 5;
+    this.holidayLane = 0;  // Always use top lane (0) for holidays
     
     // Year-specific data
     this.year = new Date().getFullYear();
@@ -182,8 +182,10 @@ class EventPositionCalculator {
    */
   calculatePositions(events, year) {
     if (!events || events.length === 0) {
+      console.log('EventPositionCalculator: No events to calculate positions for');
       return [];
     }
+    console.log('EventPositionCalculator: Calculating positions for', events.length, 'events');
     
     // Update year if provided
     if (year && this.year !== year) {
@@ -848,6 +850,10 @@ class EventPositionCalculator {
     // Convert from JS day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
     let day = date.getDay() - 1;
     if (day < 0) day = 6;
+    
+    // Debug logging
+    console.log(`EventPositionCalculator._getDayOfWeek: ${date.toISOString()} => JS day: ${date.getDay()} => Our day: ${day}`);
+    
     return day;
   }
   

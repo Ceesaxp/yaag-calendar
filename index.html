@@ -63,6 +63,99 @@
     <p>&copy; 2025 YAAG Calendar</p>
   </footer>
 
+  <!-- Debug Tools -->
+  <div id="debug-tools" style="margin: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f8f8f8;">
+    <h3>Debug Tools</h3>
+    <button id="debug-create-event">Create Test Event</button>
+    <button id="debug-clear-storage">Clear All Events</button>
+    <button id="debug-show-storage">Show localStorage</button>
+    <div id="debug-output" style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; background-color: white; max-height: 200px; overflow: auto;"></div>
+  </div>
+  
+  <script>
+    // Wait for app to initialize
+    setTimeout(() => {
+      // Debug function to create a test event
+      function createTestEvent() {
+        // Create dates with normalized time components
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to midnight
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        tomorrow.setHours(23, 59, 59, 999); // Set to end of day
+        
+        const testEvent = {
+          id: 'test-event-' + Date.now(),
+          title: 'Test Event ' + new Date().toLocaleTimeString(),
+          description: 'This is a test event created for debugging',
+          startDate: today,
+          endDate: tomorrow,
+          // Add a property to help identify test events visually
+          isTestEvent: true
+        };
+        
+        // Access the app instance from the global variable
+        const app = window.yearPlannerApp;
+        
+        // Log event details
+        console.log('Creating test event:', testEvent);
+        document.getElementById('debug-output').innerHTML = 'Creating test event: ' + JSON.stringify(testEvent, null, 2);
+        
+        // Save the event using the app
+        app.handleEventSave(testEvent).then(() => {
+          console.log('Test event saved successfully');
+          document.getElementById('debug-output').innerHTML += '<br><br>Test event saved successfully';
+          
+          // Print localStorage content for yearPlanner_events
+          const yearKey = app.storageAdapter.getYearKey(today.getFullYear());
+          console.log('Storage content:', localStorage.getItem(yearKey));
+          
+          // Check if the event appears in the app events list
+          console.log('App events:', app.yearPlanner.events);
+          
+          // Check if the event appears in the grid events list
+          console.log('Grid events:', app.yearPlannerGrid.events);
+        });
+      }
+      
+      // Debug function to show localStorage content
+      function showStorage() {
+        const output = document.getElementById('debug-output');
+        const storageItems = {};
+        
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('yearPlanner_')) {
+            storageItems[key] = JSON.parse(localStorage.getItem(key));
+          }
+        }
+        
+        output.innerHTML = '<pre>' + JSON.stringify(storageItems, null, 2) + '</pre>';
+      }
+      
+      // Debug function to clear all events
+      function clearStorage() {
+        const app = window.yearPlannerApp;
+        
+        if (app && app.storageAdapter) {
+          app.storageAdapter.clearAllData().then(() => {
+            console.log('Storage cleared');
+            document.getElementById('debug-output').innerHTML = 'All events cleared from storage';
+            app.loadYear(app.currentYear);
+          });
+        } else {
+          document.getElementById('debug-output').innerHTML = 'App not initialized yet';
+        }
+      }
+      
+      // Set up debug buttons
+      document.getElementById('debug-create-event').addEventListener('click', createTestEvent);
+      document.getElementById('debug-clear-storage').addEventListener('click', clearStorage);
+      document.getElementById('debug-show-storage').addEventListener('click', showStorage);
+    }, 1000);
+  </script>
+
   <!-- Load JavaScript modules -->
   <script type="module" src="js/app.js"></script>
 </body>

@@ -196,14 +196,24 @@ class RecurrenceCalculator {
       daysOfWeek = [baseEvent.startDate.getDay()];
     }
 
+    // Get a start date that's not earlier than both:
+    // 1. The original event start date (so we only recur forward)
+    // 2. The beginning of the current year we're planning
+    const originalStart = baseEvent.startDate;
+    const yearStart = new Date(this.year, 0, 1);
+    let planningStart = new Date(Math.max(originalStart.getTime(), yearStart.getTime()));
+
     // For each day of week this event occurs on
     for (const dayOfWeek of daysOfWeek) {
-      // Calculate first instance in the year for this day of week
-      let currentDate = new Date(this.year, 0, 1); // Start of year
+      // Calculate first instance in the year for this day of week that is not earlier than originalStart
+      let currentDate = new Date(planningStart);
       
-      // Adjust to first occurrence of this day of week
-      const daysDiff = (dayOfWeek - currentDate.getDay() + 7) % 7;
-      currentDate.setDate(currentDate.getDate() + daysDiff);
+      // If the current date is not the right day of week, advance to the next occurrence
+      if (currentDate.getDay() !== dayOfWeek) {
+        // Adjust to first occurrence of this day of week
+        const daysDiff = (dayOfWeek - currentDate.getDay() + 7) % 7;
+        currentDate.setDate(currentDate.getDate() + daysDiff);
+      }
 
       // Generate instances for the entire year
       while (currentDate <= this.yearEnd) {
@@ -244,8 +254,14 @@ class RecurrenceCalculator {
     const lastDayOfOrigMonth = new Date(origYear, origMonth + 1, 0).getDate();
     const isLastDayOfMonth = dayOfMonth === lastDayOfOrigMonth;
     
-    // Generate an instance for each month in the year
-    for (let month = 0; month < 12; month++) {
+    // Determine start month - only generate forward from original date
+    // If the event starts in a future year, start from January
+    // If the event starts in the past, start from the current month if we're in the same year
+    const startMonth = origYear < this.year ? 0 : 
+                        (origYear > this.year ? 0 : origMonth);
+    
+    // Generate an instance for each month in the year, starting from the determined month
+    for (let month = startMonth; month < 12; month++) {
       let instanceDate;
       
       if (pattern.options.preserveEndOfMonth && isLastDayOfMonth) {
@@ -285,12 +301,28 @@ class RecurrenceCalculator {
     const eventDuration = this.getEventDurationDays(baseEvent);
     
     // Get month and day from the base event
-    const month = baseEvent.startDate.getMonth();
+    const origMonth = baseEvent.startDate.getMonth();
     const day = baseEvent.startDate.getDate();
-    
-    // Get original year to check if it was February 29 in a leap year
     const origYear = baseEvent.startDate.getFullYear();
-    const isLeapDayInLeapYear = month === 1 && day === 29 && this._isLeapYear(origYear);
+    
+    // Only create an instance if the original date is in the past or this year
+    // Don't generate instances for future years
+    if (origYear > this.year) {
+      return [];
+    }
+    
+    // If the event occurs later in the year than the current date and we're in the original year,
+    // don't generate an instance yet
+    const now = new Date();
+    if (origYear === this.year && origYear === now.getFullYear()) {
+      if (origMonth > now.getMonth() || 
+          (origMonth === now.getMonth() && day > now.getDate())) {
+        return [];
+      }
+    }
+    
+    // Check if it was February 29 in a leap year
+    const isLeapDayInLeapYear = origMonth === 1 && day === 29 && this._isLeapYear(origYear);
     
     // Create date for this year's instance
     let instanceDate;
@@ -307,12 +339,12 @@ class RecurrenceCalculator {
       }
     } else {
       // Normal case
-      instanceDate = new Date(this.year, month, day);
+      instanceDate = new Date(this.year, origMonth, day);
       
       // Check if this is a valid date (handles other edge cases)
-      if (instanceDate.getMonth() !== month) {
+      if (instanceDate.getMonth() !== origMonth) {
         // Default to last day of the intended month
-        instanceDate = new Date(this.year, month + 1, 0);
+        instanceDate = new Date(this.year, origMonth + 1, 0);
       }
     }
 

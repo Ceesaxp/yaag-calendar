@@ -334,6 +334,7 @@ export class YearPlannerApp {
 
       // Load saved events from storage
       const savedEvents = await this.storageAdapter.loadEvents(year);
+      console.log('App: Loaded events from storage', savedEvents ? savedEvents.length : 0, savedEvents);
       
       // Add events to the year planner
       if (savedEvents && savedEvents.length > 0) {
@@ -377,6 +378,8 @@ export class YearPlannerApp {
         expandedEvents,
         year
       );
+      
+      console.log('App: Calculated event positions', positionedEvents.length, positionedEvents);
       
       // Update the year planner grid
       this.yearPlannerGrid.year = year;
@@ -449,7 +452,7 @@ export class YearPlannerApp {
       
       // If creating a new event
       if (!event) {
-        this.eventEditorModal.open();
+        this.eventEditorModal.open(null, defaultDate);
       } else {
         // Clone the event to avoid modifying the original directly
         const eventCopy = { ...event };
@@ -485,13 +488,18 @@ export class YearPlannerApp {
       }
       
       // Ensure dates are Date objects
-      const startDate = eventData.startDate instanceof Date 
+      // Ensure dates are Date objects
+      let startDate = eventData.startDate instanceof Date 
         ? eventData.startDate 
         : new Date(eventData.startDate);
       
-      const endDate = eventData.endDate instanceof Date 
+      let endDate = eventData.endDate instanceof Date 
         ? eventData.endDate 
         : new Date(eventData.endDate);
+        
+      // Reset time components for consistent date comparison (midnight)
+      startDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59);
       
       // Validate event dates are within the current year
       const startYear = startDate.getFullYear();

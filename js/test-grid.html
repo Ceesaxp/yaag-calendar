@@ -92,22 +92,56 @@
         const status = document.getElementById('status');
         status.textContent = `Grid created for year ${currentYear}`;
         
+        // Test predefined events for easier verification
+        const testEvents = [
+            {
+                title: "Single Day Event",
+                startMonth: new Date().getMonth(),
+                startDay: new Date().getDate(),
+                duration: 0,
+                isHoliday: false
+            },
+            {
+                title: "Week-Long Event",
+                startMonth: new Date().getMonth(),
+                startDay: 10,
+                duration: 6,
+                isHoliday: false
+            },
+            {
+                title: "Multi-Week Event",
+                startMonth: new Date().getMonth(),
+                startDay: 20,
+                duration: 14,
+                isHoliday: false
+            },
+            {
+                title: "Public Holiday",
+                startMonth: new Date().getMonth(),
+                startDay: 15,
+                duration: 0,
+                isHoliday: true
+            }
+        ];
+        
+        let testIndex = 0;
+        
         // Add event handler
         document.getElementById('add-event').addEventListener('click', () => {
-            // Create a random test event
-            const startMonth = Math.floor(Math.random() * 12);
-            const startDay = Math.floor(Math.random() * 28) + 1;
-            const duration = Math.floor(Math.random() * 5) + 1;
+            // Get test event definition
+            const testDef = testEvents[testIndex % testEvents.length];
             
-            const startDate = new Date(currentYear, startMonth, startDay);
-            const endDate = new Date(currentYear, startMonth, startDay + duration);
+            // Create test event
+            const startDate = new Date(currentYear, testDef.startMonth, testDef.startDay);
+            const endDate = new Date(currentYear, testDef.startMonth, testDef.startDay + testDef.duration);
             
             const event = new Event({
-                title: `Test Event ${Date.now().toString().slice(-4)}`,
+                title: testDef.title,
                 description: 'Test event description',
                 startDate,
                 endDate,
-                isRecurring: false
+                isRecurring: false,
+                isPublicHoliday: testDef.isHoliday
             });
             
             // Add to grid
@@ -115,6 +149,9 @@
             grid.events = [...currentEvents, event];
             
             status.textContent = `Added event: ${event.title} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
+            
+            // Increment test index
+            testIndex++;
         });
         
         // Year change handler

@@ -32,6 +32,15 @@ class EventEditorModal extends HTMLElement {
     this.shadowRoot
       .querySelector('#isRecurring')
       .addEventListener('change', this.toggleRecurrenceFields.bind(this));
+    
+    // Add date validation listeners
+    this.shadowRoot
+      .querySelector('#startDate')
+      .addEventListener('change', this.handleStartDateChange.bind(this));
+    this.shadowRoot
+      .querySelector('#endDate')
+      .addEventListener('change', this.handleEndDateChange.bind(this));
+      
     this.updateVisibility();
   }
 
@@ -48,9 +57,45 @@ class EventEditorModal extends HTMLElement {
     this.shadowRoot
       .querySelector('#isRecurring')
       .removeEventListener('change', this.toggleRecurrenceFields.bind(this));
+    
+    // Remove date validation listeners
+    this.shadowRoot
+      .querySelector('#startDate')
+      .removeEventListener('change', this.handleStartDateChange.bind(this));
+    this.shadowRoot
+      .querySelector('#endDate')
+      .removeEventListener('change', this.handleEndDateChange.bind(this));
+  }
+  
+  // Handle start date changes - ensure end date is never before start date
+  handleStartDateChange(e) {
+    const startDateInput = e.target;
+    const endDateInput = this.shadowRoot.querySelector('#endDate');
+    
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    // If start date is after end date, set end date to start date
+    if (startDate > endDate) {
+      endDateInput.value = startDateInput.value;
+    }
+  }
+  
+  // Handle end date changes - ensure start date is never after end date
+  handleEndDateChange(e) {
+    const endDateInput = e.target;
+    const startDateInput = this.shadowRoot.querySelector('#startDate');
+    
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    
+    // If end date is before start date, set start date to end date
+    if (endDate < startDate) {
+      startDateInput.value = endDateInput.value;
+    }
   }
 
-  open(event = null) {
+  open(event = null, initialDate = null) {
     this.event = event;
     this.isNewEvent = !event;
     this.setAttribute('open', '');
@@ -61,6 +106,13 @@ class EventEditorModal extends HTMLElement {
     } else {
       // Reset form for new event
       this.resetForm();
+      
+      // If an initial date was provided, set both start and end dates to it
+      if (initialDate instanceof Date) {
+        const formattedDate = this.formatDateForInput(initialDate);
+        this.shadowRoot.querySelector('#startDate').value = formattedDate;
+        this.shadowRoot.querySelector('#endDate').value = formattedDate;
+      }
     }
 
     this.toggleRecurrenceFields();
