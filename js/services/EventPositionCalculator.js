@@ -197,6 +197,9 @@ class EventPositionCalculator {
     // Precalculate week boundaries for the year
     this._calculateWeekBoundaries();
     
+    // Clean up cache for events that no longer exist
+    this._cleanupCache(events);
+    
     // Sort events by priority: holidays first, then by duration (longest first), then by start date
     const sortedEvents = [...events].sort((a, b) => {
       // Public holidays take precedence
@@ -219,7 +222,9 @@ class EventPositionCalculator {
     const eventLayouts = sortedEvents.map(event => {
       // Check if we already calculated position for this event
       const cacheKey = this._getEventCacheKey(event);
-      if (this._positionCache.has(cacheKey)) {
+      
+      // Check if event has changed since it was cached
+      if (this._positionCache.has(cacheKey) && !this._hasEventChanged(event, cacheKey)) {
         return this._positionCache.get(cacheKey);
       }
       
@@ -227,8 +232,9 @@ class EventPositionCalculator {
       const position = this._calculateOptimalPosition(event);
       const layout = new EventLayout(event, position);
       
-      // Cache the result
+      // Cache the result along with a hash of the event properties
       this._positionCache.set(cacheKey, layout);
+      this._positionCache.set(`${cacheKey}_hash`, this._computeEventHash(event));
       
       return layout;
     });
@@ -244,6 +250,78 @@ class EventPositionCalculator {
    */
   _getEventCacheKey(event) {
     return `${event.id}_${this.year}`;
+  }
+  
+  /**
+   * Compute a hash of event properties to detect changes
+   * @param {Object} event - The event object
+   * @returns {string} Hash representing the event state
+   * @private
+   */
+  _computeEventHash(event) {
+    // Create a string of the event's critical properties
+    const startDateStr = event.startDate instanceof Date ? 
+      event.startDate.toISOString() : new Date(event.startDate).toISOString();
+    const endDateStr = event.endDate instanceof Date ? 
+      event.endDate.toISOString() : new Date(event.endDate).toISOString();
+    
+    // Include properties that would affect the position calculation
+    const criticalProps = [
+      event.id,
+      startDateStr,
+      endDateStr,
+      event.isPublicHoliday ? 1 : 0,
+      event.isRecurring ? 1 : 0
+    ];
+    
+    // Simple hash is just a string of these properties
+    return criticalProps.join('_');
+  }
+  
+  /**
+   * Check if an event has changed since it was cached
+   * @param {Object} event - The event to check
+   * @param {string} cacheKey - The cache key for this event
+   * @returns {boolean} True if the event has changed
+   * @private
+   */
+  _hasEventChanged(event, cacheKey) {
+    // If we don't have a hash for this event, it has changed
+    if (!this._positionCache.has(`${cacheKey}_hash`)) {
+      return true;
+    }
+    
+    // Compare the current hash with the stored hash
+    const storedHash = this._positionCache.get(`${cacheKey}_hash`);
+    const currentHash = this._computeEventHash(event);
+    
+    return storedHash !== currentHash;
+  }
+  
+  /**
+   * Remove cached entries for events that no longer exist
+   * @param {Array} currentEvents - Current list of events
+   * @private
+   */
+  _cleanupCache(currentEvents) {
+    // Create a set of current event IDs for quick lookup
+    const currentEventIds = new Set(currentEvents.map(event => event.id));
+    
+    // Get all cache keys that are for event positions
+    const cacheKeys = Array.from(this._positionCache.keys())
+      .filter(key => !key.endsWith('_hash'));
+    
+    // Delete cache entries for events that no longer exist
+    for (const key of cacheKeys) {
+      // Extract event ID from the cache key
+      const eventId = key.split('_')[0];
+      
+      if (!currentEventIds.has(eventId)) {
+        // Remove both the position and hash entries
+        this._positionCache.delete(key);
+        this._positionCache.delete(`${key}_hash`);
+      }
+    }
   }
   
   /**
@@ -276,7 +354,7 @@ class EventPositionCalculator {
       // Initialize boundaries
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(this.year, month, day);
-        const dayOfWeek = date.getDay() - 1;
+        let dayOfWeek = date.getDay() - 1;
         if (dayOfWeek < 0) dayOfWeek = 6;
         
         // If first day of week or first day of month
@@ -561,11 +639,32 @@ class EventPositionCalculator {
   /**
    * Find a consistent swim lane that works for all segments
    * @param {Array<EventSegment>} segments - The segments to check
-   * @returns {number} The first available swim lane
+   * @returns {number} The most optimal available swim lane
    * @private
    */
   _findAvailableSwimLaneForSegments(segments) {
-    // Try each swim lane
+    // First check if there are any completely free lanes
+    const availableLanes = this._getAvailableLanesForSegments(segments);
+    
+    if (availableLanes.length > 0) {
+      // Return the first completely free lane
+      return availableLanes[0];
+    }
+    
+    // If no completely free lanes, find the lane with least conflicts
+    return this._findOptimalLaneWithLeastConflicts(segments);
+  }
+  
+  /**
+   * Get all completely available lanes for segments
+   * @param {Array<EventSegment>} segments - The segments to check
+   * @returns {Array<number>} Array of available lane indices
+   * @private
+   */
+  _getAvailableLanesForSegments(segments) {
+    const availableLanes = [];
+    
+    // Test each lane
     for (let lane = 0; lane < this.maxSwimLanes; lane++) {
       let laneAvailable = true;
       
@@ -595,12 +694,73 @@ class EventPositionCalculator {
       }
       
       if (laneAvailable) {
-        return lane;
+        availableLanes.push(lane);
       }
     }
     
-    // If no lane is available for all segments, use the last lane
-    return this.maxSwimLanes - 1;
+    return availableLanes;
+  }
+  
+  /**
+   * Find the optimal lane with least conflicts when no fully available lane exists
+   * @param {Array<EventSegment>} segments - The segments to check
+   * @returns {number} The lane index with least conflicts
+   * @private
+   */
+  _findOptimalLaneWithLeastConflicts(segments) {
+    const laneScores = new Array(this.maxSwimLanes).fill(0);
+    
+    // Calculate a score for each lane based on occupancy
+    for (let lane = 0; lane < this.maxSwimLanes; lane++) {
+      let conflictCount = 0;
+      let totalCells = 0;
+      
+      // Check conflicts for each segment
+      for (const segment of segments) {
+        const { month, startDay, endDay } = segment;
+        
+        // Calculate the column span
+        let colSpan;
+        if (endDay >= startDay) {
+          colSpan = endDay - startDay + 1;
+        } else {
+          colSpan = 7 - startDay + endDay + 1;
+        }
+        
+        totalCells += colSpan;
+        
+        // Count conflicts
+        for (let day = 0; day < colSpan; day++) {
+          const col = (startDay + day) % 7;
+          
+          if (this.occupancyGrid[month][col][lane]) {
+            conflictCount++;
+          }
+        }
+      }
+      
+      // Score is the percentage of cells that are conflict-free
+      laneScores[lane] = 1 - (conflictCount / totalCells);
+    }
+    
+    // Find the lane with the highest score (least conflicts)
+    let bestLane = 0;
+    let bestScore = laneScores[0];
+    
+    for (let lane = 1; lane < this.maxSwimLanes; lane++) {
+      // Prefer lower lanes when scores are equal
+      if (laneScores[lane] > bestScore) {
+        bestLane = lane;
+        bestScore = laneScores[lane];
+      }
+    }
+    
+    // If all lanes have significant conflicts, return the last lane as fallback
+    if (bestScore < 0.5) {
+      return this.maxSwimLanes - 1;
+    }
+    
+    return bestLane;
   }
 
   /**

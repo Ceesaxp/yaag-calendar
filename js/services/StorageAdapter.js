@@ -5,7 +5,7 @@
  * with fallback mechanisms and import/export capabilities.
  */
 
-class StorageAdapter {
+export class StorageAdapter {
   constructor() {
     this.storagePrefix = 'yearPlanner_';
     this.checkStorageAvailability();
