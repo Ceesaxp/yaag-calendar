@@ -1,4 +1,6 @@
 // components/YearPlannerGrid.js
+import { EventPositionCalculator } from '../services/EventPositionCalculator.js';
+
 export class YearPlannerGrid extends HTMLElement {
   constructor() {
     super();
@@ -122,6 +124,97 @@ export class YearPlannerGrid extends HTMLElement {
         .event.regular {
           background-color: #e3f2fd;
           border-left: 2px solid #2196f3;
+        }
+
+        /* New styles for multi-segment events */
+        .event-segment {
+          position: absolute;
+          font-size: 0.7em;
+          padding: 2px 4px;
+          margin: 1px;
+          border-radius: 3px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          cursor: pointer;
+          z-index: 10;
+        }
+
+        .event-segment.holiday {
+          background-color: #ffecb3;
+          border-left: 2px solid #ffc107;
+        }
+
+        .event-segment.regular {
+          background-color: #e3f2fd;
+          border-left: 2px solid #2196f3;
+        }
+
+        /* Continuation indicators */
+        .event-segment.continues-left {
+          border-top-left-radius: 0;
+          border-bottom-left-radius: 0;
+          border-left: none;
+          margin-left: 0;
+          padding-left: 2px;
+        }
+
+        .event-segment.continues-left::before {
+          content: "";
+          position: absolute;
+          left: -2px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to right, transparent, currentColor);
+        }
+
+        .event-segment.continues-right {
+          border-top-right-radius: 0;
+          border-bottom-right-radius: 0;
+          margin-right: 0;
+          padding-right: 2px;
+        }
+
+        .event-segment.continues-right::after {
+          content: "";
+          position: absolute;
+          right: -2px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to left, transparent, currentColor);
+        }
+
+        .event-segment.continues-up::before {
+          content: "↑";
+          position: absolute;
+          left: 2px;
+          top: -1px;
+          font-size: 0.8em;
+          opacity: 0.7;
+        }
+
+        .event-segment.continues-down::after {
+          content: "↓";
+          position: absolute;
+          right: 2px;
+          bottom: -1px;
+          font-size: 0.8em;
+          opacity: 0.7;
+        }
+
+        /* Hover effects for multi-segment events */
+        .event-segment[data-event-id]:hover,
+        .event-segment[data-event-id].hover {
+          filter: brightness(0.9);
+          z-index: 20;
+        }
+
+        .event-date-range {
+          font-size: 0.9em;
+          color: rgba(0,0,0,0.6);
+          margin-left: 3px;
         }
 
         .event-indicators {

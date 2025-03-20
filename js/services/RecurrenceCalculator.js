@@ -2,9 +2,70 @@
  * RecurrenceCalculator.js - Handles expansion of recurring events
  *
  * Generates concrete instances of recurring events based on their patterns,
- * constrained to the bounds of a specific year.
+ * constrained to the bounds of a specific year. Supports weekly, monthly,
+ * and annual recurrence patterns with optimization for memory usage.
  */
 
+import { Event } from '../domain/models.js';
+
+/**
+ * RecurrencePattern class to handle different types of event recurrence
+ */
+class RecurrencePattern {
+  /**
+   * Create a new recurrence pattern
+   * @param {string} type - Type of recurrence ('weekly', 'monthly', or 'annual')
+   * @param {Object} [options] - Additional recurrence options
+   * @param {number[]} [options.daysOfWeek] - Days of week for weekly recurrence (0 = Sunday, 6 = Saturday)
+   * @param {boolean} [options.preserveEndOfMonth] - For monthly, if true, always use last day of month for dates like 31st
+   */
+  constructor(type, options = {}) {
+    if (!['weekly', 'monthly', 'annual'].includes(type)) {
+      throw new Error(`Invalid recurrence type: ${type}`);
+    }
+    
+    this.type = type;
+    this.options = options;
+    
+    // Set default options based on type
+    if (type === 'weekly' && !options.daysOfWeek) {
+      this.options.daysOfWeek = []; // Default to the original day
+    }
+    
+    if (type === 'monthly' && options.preserveEndOfMonth === undefined) {
+      this.options.preserveEndOfMonth = true;
+    }
+  }
+  
+  /**
+   * Get a simplified representation for serialization
+   * @returns {Object} Simplified object for serialization
+   */
+  toJSON() {
+    return {
+      type: this.type,
+      ...this.options
+    };
+  }
+  
+  /**
+   * Create a RecurrencePattern from a plain object
+   * @param {Object} obj - Object representation of recurrence pattern
+   * @returns {RecurrencePattern} A new RecurrencePattern instance
+   */
+  static fromObject(obj) {
+    if (!obj || !obj.type) {
+      throw new Error('Invalid recurrence pattern object');
+    }
+    
+    const { type, ...options } = obj;
+    return new RecurrencePattern(type, options);
+  }
+}
+
+/**
+ * RecurrenceCalculator class that handles the expansion of recurring events
+ */
 class RecurrenceCalculator {
   /**
    * Create a recurrence calculator for a specific year
@@ -14,23 +75,65 @@ class RecurrenceCalculator {
     this.year = year;
     this.yearStart = new Date(year, 0, 1);
     this.yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+    
+    // Cache for event instances to prevent regeneration
+    this._cache = new Map();
+    
+    // Flag to detect if timezone has DST to handle edge cases
+    this.hasDST = this._checkForDST();
+  }
+  
+  /**
+   * Check if the current timezone has DST
+   * @returns {boolean} True if the timezone has DST
+   * @private
+   */
+  _checkForDST() {
+    // Check if January and July have different offsets
+    const jan = new Date(this.year, 0, 1).getTimezoneOffset();
+    const jul = new Date(this.year, 6, 1).getTimezoneOffset();
+    return jan !== jul;
   }
 
   /**
    * Expand all recurring events into concrete instances
-   * @param {Array<Object>} events - Array of events
-   * @returns {Array<Object>} Array of events with recurring events expanded
+   * @param {Array<Event>} events - Array of events
+   * @returns {Array<Event>} Array of events with recurring events expanded
    */
   expandRecurringEvents(events) {
-    const nonRecurringEvents = events.filter((event) => !event.isRecurring);
-    const recurringEvents = events.filter((event) => event.isRecurring);
+    if (!events || !Array.isArray(events)) {
+      return [];
+    }
+    
+    // Separate recurring and non-recurring events
+    const nonRecurringEvents = events.filter(event => !event.isRecurring);
+    const recurringEvents = events.filter(event => event.isRecurring);
 
+    // Start with all non-recurring events
     let expandedEvents = [...nonRecurringEvents];
 
     // Process each recurring event
     for (const baseEvent of recurringEvents) {
-      const instances = this.generateRecurrenceInstances(baseEvent);
-      expandedEvents = expandedEvents.concat(instances);
+      try {
+        // Check if we have this event in cache by its ID
+        if (this._cache.has(baseEvent.id)) {
+          expandedEvents = expandedEvents.concat(this._cache.get(baseEvent.id));
+          continue;
+        }
+        
+        // Generate new instances
+        const instances = this.generateRecurrenceInstances(baseEvent);
+        
+        // Add to expanded events
+        expandedEvents = expandedEvents.concat(instances);
+        
+        // Cache the instances for future use
+        this._cache.set(baseEvent.id, instances);
+      } catch (error) {
+        console.error(`Error expanding recurring event ${baseEvent.id}:`, error);
+        // Include the original event if expansion fails
+        expandedEvents.push(baseEvent);
+      }
     }
 
     return expandedEvents;
@@ -38,26 +141,35 @@ class RecurrenceCalculator {
 
   /**
    * Generate instances of a recurring event
-   * @param {Object} baseEvent - The base recurring event
-   * @returns {Array<Object>} Array of event instances
+   * @param {Event} baseEvent - The base recurring event
+   * @returns {Array<Event>} Array of event instances
    */
   generateRecurrenceInstances(baseEvent) {
+    if (!baseEvent.isRecurring) {
+      return [baseEvent];
+    }
+
     if (!baseEvent.recurrencePattern || !baseEvent.recurrencePattern.type) {
       console.warn(
-        `Event ${baseEvent.id} is marked as recurring but has no valid recurrence pattern`,
+        `Event ${baseEvent.id} is marked as recurring but has no valid recurrence pattern`
       );
       return [baseEvent]; // Return original event if no valid pattern
     }
 
     const { type } = baseEvent.recurrencePattern;
+    
+    // Convert to RecurrencePattern instance if it's not already
+    const pattern = (baseEvent.recurrencePattern instanceof RecurrencePattern)
+      ? baseEvent.recurrencePattern
+      : RecurrencePattern.fromObject(baseEvent.recurrencePattern);
 
     switch (type) {
       case 'weekly':
-        return this.generateWeeklyInstances(baseEvent);
+        return this.generateWeeklyInstances(baseEvent, pattern);
       case 'monthly':
-        return this.generateMonthlyInstances(baseEvent);
+        return this.generateMonthlyInstances(baseEvent, pattern);
       case 'annual':
-        return this.generateAnnualInstances(baseEvent);
+        return this.generateAnnualInstances(baseEvent, pattern);
       default:
         console.warn(`Unknown recurrence type: ${type}`);
         return [baseEvent];
@@ -66,37 +178,48 @@ class RecurrenceCalculator {
 
   /**
    * Generate weekly instances of a recurring event
-   * @param {Object} baseEvent - The base recurring event
-   * @returns {Array<Object>} Array of weekly event instances
+   * @param {Event} baseEvent - The base recurring event
+   * @param {RecurrencePattern} pattern - The recurrence pattern
+   * @returns {Array<Event>} Array of weekly event instances
    */
-  generateWeeklyInstances(baseEvent) {
+  generateWeeklyInstances(baseEvent, pattern) {
     const instances = [];
     const eventDuration = this.getEventDurationDays(baseEvent);
+    
+    // Determine which days of the week this event occurs on
+    let daysOfWeek;
+    if (pattern.options.daysOfWeek && pattern.options.daysOfWeek.length > 0) {
+      // Use specified days of week
+      daysOfWeek = pattern.options.daysOfWeek;
+    } else {
+      // Default to the same day of week as the original event
+      daysOfWeek = [baseEvent.startDate.getDay()];
+    }
 
-    // Get the day of week (0-6, where 0 is Sunday)
-    const startDayOfWeek = baseEvent.startDate.getDay();
+    // For each day of week this event occurs on
+    for (const dayOfWeek of daysOfWeek) {
+      // Calculate first instance in the year for this day of week
+      let currentDate = new Date(this.year, 0, 1); // Start of year
+      
+      // Adjust to first occurrence of this day of week
+      const daysDiff = (dayOfWeek - currentDate.getDay() + 7) % 7;
+      currentDate.setDate(currentDate.getDate() + daysDiff);
 
-    // Calculate first instance in the year
-    let currentDate = new Date(this.year, 0, 1); // Start of year
+      // Generate instances for the entire year
+      while (currentDate <= this.yearEnd) {
+        // Only create instance if it starts within the current year boundary
+        if (currentDate >= this.yearStart) {
+          const instance = this.createEventInstance(
+            baseEvent,
+            new Date(currentDate),
+            eventDuration
+          );
+          instances.push(instance);
+        }
 
-    // Adjust to first occurrence of the day of week
-    const daysDiff = (startDayOfWeek - currentDate.getDay() + 7) % 7;
-    currentDate.setDate(currentDate.getDate() + daysDiff);
-
-    // Generate instances for the entire year
-    while (currentDate <= this.yearEnd) {
-      // Only create instance if it starts within the year
-      if (currentDate >= this.yearStart) {
-        const instance = this.createEventInstance(
-          baseEvent,
-          new Date(currentDate),
-          eventDuration,
-        );
-        instances.push(instance);
+        // Move to next week
+        currentDate.setDate(currentDate.getDate() + 7);
       }
-
-      // Move to next week
-      currentDate.setDate(currentDate.getDate() + 7);
     }
 
     return instances;
@@ -104,31 +227,47 @@ class RecurrenceCalculator {
 
   /**
    * Generate monthly instances of a recurring event
-   * @param {Object} baseEvent - The base recurring event
-   * @returns {Array<Object>} Array of monthly event instances
+   * @param {Event} baseEvent - The base recurring event
+   * @param {RecurrencePattern} pattern - The recurrence pattern
+   * @returns {Array<Event>} Array of monthly event instances
    */
-  generateMonthlyInstances(baseEvent) {
+  generateMonthlyInstances(baseEvent, pattern) {
     const instances = [];
     const eventDuration = this.getEventDurationDays(baseEvent);
-
-    // Get the day of month (1-31)
+    
+    // Get the day of month from the original event (1-31)
     const dayOfMonth = baseEvent.startDate.getDate();
-
-    // Generate an instance for each month
+    
+    // Get the original month to check if it's the last day of month
+    const origMonth = baseEvent.startDate.getMonth();
+    const origYear = baseEvent.startDate.getFullYear();
+    const lastDayOfOrigMonth = new Date(origYear, origMonth + 1, 0).getDate();
+    const isLastDayOfMonth = dayOfMonth === lastDayOfOrigMonth;
+    
+    // Generate an instance for each month in the year
     for (let month = 0; month < 12; month++) {
-      // Create a date for this month's instance
-      const instanceDate = new Date(this.year, month, dayOfMonth);
-
-      // Check if this is a valid date (handles months with fewer days)
-      if (instanceDate.getMonth() !== month) {
-        // We got bumped to the next month, use last day of intended month
-        instanceDate.setDate(0); // Set to last day of previous month
+      let instanceDate;
+      
+      if (pattern.options.preserveEndOfMonth && isLastDayOfMonth) {
+        // If we're preserving end-of-month and the original was on the last day,
+        // always use the last day of the target month
+        const lastDay = new Date(this.year, month + 1, 0).getDate();
+        instanceDate = new Date(this.year, month, lastDay);
+      } else {
+        // Normal case: use the same day of month
+        instanceDate = new Date(this.year, month, dayOfMonth);
+        
+        // Check if this is a valid date (handles months with fewer days)
+        if (instanceDate.getMonth() !== month) {
+          // We got bumped to the next month, use last day of intended month
+          instanceDate = new Date(this.year, month + 1, 0);
+        }
       }
 
       const instance = this.createEventInstance(
         baseEvent,
         instanceDate,
-        eventDuration,
+        eventDuration
       );
       instances.push(instance);
     }
@@ -138,29 +277,49 @@ class RecurrenceCalculator {
 
   /**
    * Generate annual instances of a recurring event
-   * @param {Object} baseEvent - The base recurring event
-   * @returns {Array<Object>} Array of annual event instances (single instance for current year)
+   * @param {Event} baseEvent - The base recurring event
+   * @param {RecurrencePattern} pattern - The recurrence pattern
+   * @returns {Array<Event>} Array of annual event instances (single instance for current year)
    */
-  generateAnnualInstances(baseEvent) {
+  generateAnnualInstances(baseEvent, pattern) {
     const eventDuration = this.getEventDurationDays(baseEvent);
-
+    
     // Get month and day from the base event
     const month = baseEvent.startDate.getMonth();
     const day = baseEvent.startDate.getDate();
-
+    
+    // Get original year to check if it was February 29 in a leap year
+    const origYear = baseEvent.startDate.getFullYear();
+    const isLeapDayInLeapYear = month === 1 && day === 29 && this._isLeapYear(origYear);
+    
     // Create date for this year's instance
-    const instanceDate = new Date(this.year, month, day);
-
-    // Check if this is a valid date (handles Feb 29 in non-leap years)
-    if (instanceDate.getMonth() !== month) {
-      // Default to Feb 28 for Feb 29 in non-leap years
-      instanceDate.setDate(28);
+    let instanceDate;
+    
+    if (isLeapDayInLeapYear) {
+      // Handle Feb 29 specially
+      if (this._isLeapYear(this.year)) {
+        instanceDate = new Date(this.year, 1, 29); // Feb 29 in current year
+      } else {
+        // Current year is not a leap year, use Feb 28 or Mar 1 based on pattern
+        instanceDate = pattern.options.fallbackForLeapDay === 'after'
+          ? new Date(this.year, 2, 1)   // March 1
+          : new Date(this.year, 1, 28);  // February 28
+      }
+    } else {
+      // Normal case
+      instanceDate = new Date(this.year, month, day);
+      
+      // Check if this is a valid date (handles other edge cases)
+      if (instanceDate.getMonth() !== month) {
+        // Default to last day of the intended month
+        instanceDate = new Date(this.year, month + 1, 0);
+      }
     }
 
     const instance = this.createEventInstance(
       baseEvent,
       instanceDate,
-      eventDuration,
+      eventDuration
     );
 
     return [instance];
@@ -168,45 +327,134 @@ class RecurrenceCalculator {
 
   /**
    * Create a concrete instance of a recurring event
-   * @param {Object} baseEvent - The base recurring event
+   * @param {Event} baseEvent - The base recurring event
    * @param {Date} startDate - Start date for the instance
    * @param {number} durationDays - Duration in days
-   * @returns {Object} The event instance
+   * @returns {Event} The event instance
    */
   createEventInstance(baseEvent, startDate, durationDays) {
     // Calculate end date based on start date and original duration
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + durationDays);
-
+    
     // Truncate to year boundaries if necessary
     const finalEndDate = new Date(
-      Math.min(endDate.getTime(), this.yearEnd.getTime()),
+      Math.min(endDate.getTime(), this.yearEnd.getTime())
     );
 
-    // Create a unique ID for this instance
+    // Create a unique ID for this instance based on original ID and date
     const instanceId = `${baseEvent.id}_${startDate.toISOString().split('T')[0]}`;
+    
+    // Apply time from original event to preserve AM/PM indicators
+    this._applyTimeFromDate(startDate, baseEvent.startDate);
+    this._applyTimeFromDate(finalEndDate, baseEvent.endDate);
+    
+    // Create a new Event instance
+    try {
+      return new Event({
+        id: instanceId,
+        title: baseEvent.title,
+        description: baseEvent.description,
+        startDate: startDate,
+        endDate: finalEndDate,
+        isRecurring: false, // Instances are not themselves recurring
+        startsPM: baseEvent.startsPM,
+        endsAM: baseEvent.endsAM,
+        isPublicHoliday: baseEvent.isPublicHoliday,
+        // Add metadata for instances
+        isRecurrenceInstance: true,
+        originalEventId: baseEvent.id,
+        recurrencePattern: baseEvent.recurrencePattern
+      });
+    } catch (error) {
+      // Fallback to plain object if Event construction fails
+      console.warn(`Failed to create Event instance: ${error.message}. Using plain object.`);
+      return {
+        id: instanceId,
+        title: baseEvent.title,
+        description: baseEvent.description,
+        startDate: startDate,
+        endDate: finalEndDate,
+        isRecurring: false,
+        startsPM: baseEvent.startsPM,
+        endsAM: baseEvent.endsAM,
+        isPublicHoliday: baseEvent.isPublicHoliday,
+        isRecurrenceInstance: true,
+        originalEventId: baseEvent.id
+      };
+    }
+  }
 
-    return {
-      ...baseEvent,
-      id: instanceId,
-      originalEventId: baseEvent.id, // Reference to original event
-      startDate: startDate,
-      endDate: finalEndDate,
-      isRecurrenceInstance: true,
-    };
+  /**
+   * Apply hours, minutes, and seconds from one date to another
+   * @param {Date} targetDate - Date to modify
+   * @param {Date} sourceDate - Date to get time from
+   * @private
+   */
+  _applyTimeFromDate(targetDate, sourceDate) {
+    targetDate.setHours(
+      sourceDate.getHours(),
+      sourceDate.getMinutes(),
+      sourceDate.getSeconds(),
+      sourceDate.getMilliseconds()
+    );
   }
 
   /**
    * Calculate the duration of an event in days
-   * @param {Object} event - The event
+   * @param {Event} event - The event
    * @returns {number} Duration in days
    */
   getEventDurationDays(event) {
+    // Use the event's duration getter if available
+    if (event.duration !== undefined && typeof event.duration !== 'function') {
+      return event.duration;
+    }
+    
+    // Otherwise calculate manually
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
-
+    
+    // Reset time components to ensure accurate day calculation
+    const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    
     // Calculate difference in milliseconds and convert to days
-    const diff = endDate.getTime() - startDate.getTime();
-    return Math.round(diff / (1000 * 60 * 60 * 24));
+    const diff = end.getTime() - start.getTime();
+    return Math.round(diff / (1000 * 60 * 60 * 24)) + 1; // Include both start and end days
+  }
+  
+  /**
+   * Check if a year is a leap year
+   * @param {number} year - The year to check
+   * @returns {boolean} True if it's a leap year
+   * @private
+   */
+  _isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  }
+  
+  /**
+   * Clear the instance cache
+   * Use this when changing years or when events are updated
+   */
+  clearCache() {
+    this._cache.clear();
+  }
+  
+  /**
+   * Update the calculator's year
+   * @param {number} year - The new year to calculate for
+   */
+  setYear(year) {
+    if (this.year !== year) {
+      this.year = year;
+      this.yearStart = new Date(year, 0, 1);
+      this.yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+      this.clearCache(); // Clear cache when changing year
+    }
   }
 }
+
+// Export classes
+export { RecurrencePattern, RecurrenceCalculator };
