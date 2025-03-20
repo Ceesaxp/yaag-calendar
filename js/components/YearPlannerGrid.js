@@ -92,6 +92,15 @@ export class YearPlannerGrid extends HTMLElement {
         .day-cell:hover {
           background-color: #f9f9f9;
         }
+        
+        .inactive-cell {
+          background-color: #f2f2f2;
+          cursor: default;
+        }
+        
+        .inactive-cell:hover {
+          background-color: #f2f2f2;
+        }
 
         .day-number {
           position: absolute;
@@ -288,7 +297,7 @@ export class YearPlannerGrid extends HTMLElement {
   }
 
   _renderHeaders(grid) {
-    // Year selector cell
+    // Year selector cell in top-left corner (col 1, row 1)
     const yearCell = document.createElement('div');
     yearCell.className = 'header-cell';
     yearCell.innerHTML = `
@@ -300,7 +309,7 @@ export class YearPlannerGrid extends HTMLElement {
     `;
     grid.appendChild(yearCell);
 
-    // Weekday headers
+    // Weekday headers (all 35 columns - 5 weeks of 7 days each)
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     for (let week = 0; week < 5; week++) {
       for (let day = 0; day < 7; day++) {
@@ -310,28 +319,6 @@ export class YearPlannerGrid extends HTMLElement {
         grid.appendChild(dayHeader);
       }
     }
-
-    // Month cells
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    months.forEach((month) => {
-      const monthCell = document.createElement('div');
-      monthCell.className = 'month-cell';
-      monthCell.textContent = month;
-      grid.appendChild(monthCell);
-    });
   }
 
   _renderDayCells(grid) {
@@ -340,52 +327,60 @@ export class YearPlannerGrid extends HTMLElement {
       const firstDay = new Date(this._year, month, 1);
       // Get the last day of the month
       const lastDay = new Date(this._year, month + 1, 0);
+      const daysInMonth = lastDay.getDate();
 
       // Get day of week of first day (0 = Sunday, converting to 0 = Monday)
       let firstDayOfWeek = firstDay.getDay() - 1;
       if (firstDayOfWeek < 0) firstDayOfWeek = 6; // Sunday becomes 6
 
-      // Create day cells for this month
-      for (let weekIndex = 0; weekIndex < 5; weekIndex++) {
-        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-          const dayCell = document.createElement('div');
-          dayCell.className = 'day-cell';
+      // Calculate how many complete weeks plus remaining days
+      const totalDays = firstDayOfWeek + daysInMonth;
+      const totalWeeks = Math.ceil(totalDays / 7);
+      
+      // Create day cells for each position in the 5-week grid
+      for (let position = 0; position < 35; position++) {
+        const dayCell = document.createElement('div');
+        dayCell.className = 'day-cell';
 
-          // Calculate the day number
-          const dayOffset = weekIndex * 7 + dayOfWeek - firstDayOfWeek;
-          const dayNumber = dayOffset + 1;
+        // Calculate week and day position 
+        const weekIndex = Math.floor(position / 7);
+        const dayOfWeek = position % 7;
 
-          // Only show day numbers for valid days in the month
-          if (dayNumber > 0 && dayNumber <= lastDay.getDate()) {
-            dayCell.innerHTML = `<div class="day-number">${dayNumber}</div>`;
+        // Calculate the day number (1-based)
+        const dayOffset = position - firstDayOfWeek;
+        const dayNumber = dayOffset + 1;
 
-            // Store data attributes for identifying the cell
-            dayCell.dataset.month = month;
-            dayCell.dataset.day = dayNumber;
+        // Only show day numbers for valid days in the month
+        if (dayNumber > 0 && dayNumber <= daysInMonth) {
+          dayCell.innerHTML = `<div class="day-number">${dayNumber}</div>`;
 
-            // Add click event to emit day-click custom event
-            dayCell.addEventListener('click', (e) => {
-              // Only trigger if the click was directly on the cell (not on an event)
-              if (e.target === dayCell || e.target.className === 'day-number') {
-                const clickEvent = new CustomEvent('day-click', {
-                  detail: {
-                    date: new Date(this._year, month, dayNumber),
-                    month: month,
-                    day: dayNumber,
-                  },
-                  bubbles: true,
-                  composed: true,
-                });
-                this.dispatchEvent(clickEvent);
-              }
-            });
-          } else {
-            // Empty cell for days outside the month
-            dayCell.dataset.empty = true;
-          }
+          // Store data attributes for identifying the cell
+          dayCell.dataset.month = month;
+          dayCell.dataset.day = dayNumber;
 
-          grid.appendChild(dayCell);
+          // Add click event to emit day-click custom event
+          dayCell.addEventListener('click', (e) => {
+            // Only trigger if the click was directly on the cell (not on an event)
+            if (e.target === dayCell || e.target.className === 'day-number') {
+              const clickEvent = new CustomEvent('day-click', {
+                detail: {
+                  date: new Date(this._year, month, dayNumber),
+                  month: month,
+                  day: dayNumber,
+                },
+                bubbles: true,
+                composed: true,
+              });
+              this.dispatchEvent(clickEvent);
+            }
+          });
+        } else {
+          // Empty cell for days outside the month (filler cells)
+          dayCell.dataset.empty = true;
+          dayCell.classList.add('inactive-cell');
         }
+
+        grid.appendChild(dayCell);
       }
     }
   }

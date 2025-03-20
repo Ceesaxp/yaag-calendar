@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Year Planner Grid</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        #container {
+            overflow-x: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 10px;
+        }
+        
+        year-planner-grid {
+            display: block;
+            width: 100%;
+            min-height: 700px;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4682B4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Year Planner Grid</h1>
+    
+    <div class="controls">
+        <button id="add-event">Add Test Event</button>
+        <button id="change-year">Change Year</button>
+        <button id="clear">Clear Events</button>
+    </div>
+    
+    <div id="container">
+        <!-- The grid will be added here -->
+    </div>
+    
+    <div id="status">Ready to test...</div>
+    
+    <script type="module">
+        import { YearPlannerGrid } from './components/YearPlannerGrid.js';
+        import { Event } from './domain/models.js';
+        
+        // Make sure the component is registered
+        if (!customElements.get('year-planner-grid')) {
+            customElements.define('year-planner-grid', YearPlannerGrid);
+        }
+        
+        // Create and add the grid
+        const grid = document.createElement('year-planner-grid');
+        document.getElementById('container').appendChild(grid);
+        
+        // Set the current year
+        const currentYear = new Date().getFullYear();
+        grid.year = currentYear;
+        
+        // Log status
+        const status = document.getElementById('status');
+        status.textContent = `Grid created for year ${currentYear}`;
+        
+        // Add event handler
+        document.getElementById('add-event').addEventListener('click', () => {
+            // Create a random test event
+            const startMonth = Math.floor(Math.random() * 12);
+            const startDay = Math.floor(Math.random() * 28) + 1;
+            const duration = Math.floor(Math.random() * 5) + 1;
+            
+            const startDate = new Date(currentYear, startMonth, startDay);
+            const endDate = new Date(currentYear, startMonth, startDay + duration);
+            
+            const event = new Event({
+                title: `Test Event ${Date.now().toString().slice(-4)}`,
+                description: 'Test event description',
+                startDate,
+                endDate,
+                isRecurring: false
+            });
+            
+            // Add to grid
+            const currentEvents = grid.events || [];
+            grid.events = [...currentEvents, event];
+            
+            status.textContent = `Added event: ${event.title} (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
+        });
+        
+        // Year change handler
+        document.getElementById('change-year').addEventListener('click', () => {
+            const newYear = grid.year + 1 > currentYear + 5 ? currentYear - 5 : grid.year + 1;
+            grid.year = newYear;
+            status.textContent = `Changed year to ${newYear}`;
+        });
+        
+        // Clear events handler
+        document.getElementById('clear').addEventListener('click', () => {
+            grid.events = [];
+            status.textContent = 'Cleared all events';
+        });
+        
+        // Event listeners
+        grid.addEventListener('day-click', (e) => {
+            status.textContent = `Day clicked: ${e.detail.date.toLocaleDateString()}`;
+        });
+        
+        grid.addEventListener('event-click', (e) => {
+            status.textContent = `Event clicked: ${e.detail.eventId}`;
+        });
+    </script>
+</body>
+</html>

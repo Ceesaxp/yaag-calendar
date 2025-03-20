@@ -5,11 +5,13 @@
  * between components defined in the Year Planner Design Document.
  */
 
+// Use the services version of StorageAdapter
 import { StorageAdapter } from './services/StorageAdapter.js';
 import { RecurrenceCalculator } from './services/RecurrenceCalculator.js';
 import { EventPositionCalculator } from './services/EventPositionCalculator.js';
 import { Event, YearPlanner } from './domain/models.js';
 import EventEditorModal from './components/EventEditorModal.js';
+import { YearPlannerGrid } from './components/YearPlannerGrid.js';
 
 /**
  * Main application controller that orchestrates the Year Planner application
@@ -71,8 +73,15 @@ export class YearPlannerApp {
    * Create the event editor modal and add it to the DOM
    */
   createEventEditorModal() {
+    // Ensure the EventEditorModal custom element is defined
+    if (!customElements.get('event-editor-modal')) {
+      customElements.define('event-editor-modal', EventEditorModal);
+      console.log('Registered EventEditorModal custom element');
+    }
+    
     this.eventEditorModal = document.createElement('event-editor-modal');
     document.body.appendChild(this.eventEditorModal);
+    console.log('EventEditorModal element created and appended to document body');
 
     // Set up event listeners for the modal
     this.eventEditorModal.addEventListener('event-save', (e) => {
@@ -100,8 +109,15 @@ export class YearPlannerApp {
       document.body.appendChild(container);
     }
 
+    // Ensure the YearPlannerGrid custom element is defined
+    if (!customElements.get('year-planner-grid')) {
+      customElements.define('year-planner-grid', YearPlannerGrid);
+      console.log('Registered YearPlannerGrid custom element');
+    }
+
     this.yearPlannerGrid = document.createElement('year-planner-grid');
     container.appendChild(this.yearPlannerGrid);
+    console.log('YearPlannerGrid element created and appended to container');
 
     // Set up event listeners for the grid
     this.yearPlannerGrid.addEventListener('day-click', (e) => {
