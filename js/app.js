@@ -12,6 +12,7 @@ import { EventPositionCalculator } from './services/EventPositionCalculator.js';
 import { Event, YearPlanner } from './domain/models.js';
 import EventEditorModal from './components/EventEditorModal.js';
 import { YearPlannerGrid } from './components/YearPlannerGrid.js';
+import { normalizeDateToUTC, createDateOnly, compareDates, getDaysBetween } from './utils/DateUtils.js';
 
 // Log imports to help with debugging
 console.log('Modules imported successfully');
@@ -414,8 +415,8 @@ export class YearPlannerApp {
               id: eventData.id,
               title: eventData.title,
               description: eventData.description,
-              startDate: new Date(eventData.startDate),
-              endDate: new Date(eventData.endDate),
+              startDate: normalizeDateToUTC(eventData.startDate),
+              endDate: normalizeDateToUTC(eventData.endDate),
               isRecurring: eventData.isRecurring,
               recurrencePattern: eventData.recurrencePattern,
               startsPM: eventData.startsPM,
@@ -514,9 +515,10 @@ export class YearPlannerApp {
    */
   openEventEditor(event, defaultDate = new Date()) {
     try {
-      // Ensure default date is in the current year
+      // Normalize default date to midnight UTC and ensure it's in the current year
+      defaultDate = normalizeDateToUTC(defaultDate);
       if (defaultDate.getFullYear() !== this.currentYear) {
-        defaultDate = new Date(this.currentYear, 0, 1);
+        defaultDate = createDateOnly(this.currentYear, 0, 1);
       }
       
       // If creating a new event
@@ -526,14 +528,9 @@ export class YearPlannerApp {
         // Clone the event to avoid modifying the original directly
         const eventCopy = { ...event };
         
-        // Ensure dates are proper Date objects
-        if (!(eventCopy.startDate instanceof Date)) {
-          eventCopy.startDate = new Date(eventCopy.startDate);
-        }
-        
-        if (!(eventCopy.endDate instanceof Date)) {
-          eventCopy.endDate = new Date(eventCopy.endDate);
-        }
+        // Ensure dates are proper Date objects and normalized to midnight UTC
+        eventCopy.startDate = normalizeDateToUTC(eventCopy.startDate);
+        eventCopy.endDate = normalizeDateToUTC(eventCopy.endDate);
         
         this.eventEditorModal.open(eventCopy);
       }
@@ -556,19 +553,12 @@ export class YearPlannerApp {
         throw new Error('Start and end dates are required');
       }
       
-      // Ensure dates are Date objects
-      // Ensure dates are Date objects
-      let startDate = eventData.startDate instanceof Date 
-        ? eventData.startDate 
-        : new Date(eventData.startDate);
+      // Normalize dates to midnight UTC
+      let startDate = normalizeDateToUTC(eventData.startDate);
+      let endDate = normalizeDateToUTC(eventData.endDate);
       
-      let endDate = eventData.endDate instanceof Date 
-        ? eventData.endDate 
-        : new Date(eventData.endDate);
-        
-      // Reset time components for consistent date comparison (midnight)
-      startDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59);
+      // For end dates, we want to include the full day
+      // No need to set to 23:59:59 since we're using date-only comparison
       
       // Validate event dates are within the current year
       const startYear = startDate.getFullYear();

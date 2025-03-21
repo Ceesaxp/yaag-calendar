@@ -40,7 +40,15 @@ class Event {
     if (!endDate || !(endDate instanceof Date))
       throw new Error('Valid end date is required');
     if (startDate > endDate)
-      throw new Error('Start date must be before or equal to end date');
+      console.log(
+        'Event ID: ' +
+          id +
+          'Start date: ' +
+          startDate +
+          ' End date: ' +
+          endDate,
+      );
+    throw new Error('Start date must be before or equal to end date');
 
     // Validate recurrence pattern if isRecurring is true
     if (

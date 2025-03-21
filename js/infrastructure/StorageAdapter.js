@@ -191,6 +191,8 @@ class StorageAdapter {
     return JSON.stringify(yearPlanner, (key, value) => {
       // Special handling for Date objects
       if (value instanceof Date) {
+        // Store dates as ISO strings at midnight UTC
+        // This ensures consistent date handling across time zones
         return {
           __type: 'Date',
           value: value.toISOString(),
@@ -210,7 +212,14 @@ class StorageAdapter {
     return JSON.parse(jsonString, (key, value) => {
       // Revive Date objects
       if (value && typeof value === 'object' && value.__type === 'Date') {
-        return new Date(value.value);
+        // Create date at midnight UTC for the calendar date
+        const date = new Date(value.value);
+        // Ensure it's at midnight UTC
+        return new Date(Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate()
+        ));
       }
       return value;
     });
@@ -241,10 +250,36 @@ class Event {
     this.id = id;
     this.title = title;
     this.description = description;
-    this.startDate = startDate;
-    this.endDate = endDate || startDate;
+    
+    // Normalize dates to midnight UTC
+    if (startDate) {
+      // Create date at midnight UTC
+      const start = new Date(startDate);
+      this.startDate = new Date(Date.UTC(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate()
+      ));
+    } else {
+      this.startDate = null;
+    }
+    
+    if (endDate) {
+      // Create date at midnight UTC
+      const end = new Date(endDate);
+      this.endDate = new Date(Date.UTC(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate()
+      ));
+    } else {
+      this.endDate = this.startDate;
+    }
+    
     this.isRecurring = isRecurring;
     this.recurrencePattern = recurrencePattern;
+    
+    // These flags handle the time-of-day information
     this.startsPM = startsPM;
     this.endsAM = endsAM;
     this.isPublicHoliday = isPublicHoliday;
