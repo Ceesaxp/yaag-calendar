@@ -13,6 +13,9 @@ import { Event, YearPlanner } from './domain/models.js';
 import EventEditorModal from './components/EventEditorModal.js';
 import { YearPlannerGrid } from './components/YearPlannerGrid.js';
 
+// Log imports to help with debugging
+console.log('Modules imported successfully');
+
 /**
  * Main application controller that orchestrates the Year Planner application
  */

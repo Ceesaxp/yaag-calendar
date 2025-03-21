@@ -15,6 +15,7 @@ const BASE_DIR = path.join(__dirname, '..');
 const MIME_TYPES = {
   '.html': 'text/html',
   '.js': 'text/javascript',
+  '.mjs': 'text/javascript', // Explicitly handle ES modules
   '.css': 'text/css',
   '.json': 'application/json',
   '.png': 'image/png',
@@ -28,8 +29,11 @@ const MIME_TYPES = {
 const server = http.createServer((req, res) => {
   console.log(`${req.method} ${req.url}`);
   
+  // Parse URL to handle query parameters
+  const urlObj = new URL(req.url, `http://localhost:${PORT}`);
+  
   // Handle root URL
-  let url = req.url;
+  let url = urlObj.pathname;
   if (url === '/') {
     url = '/index.html';
   }
@@ -44,27 +48,87 @@ const server = http.createServer((req, res) => {
     return;
   }
   
-  // Get the file extension
-  const extname = path.extname(filePath);
-  
-  // Set content type based on file extension
-  const contentType = MIME_TYPES[extname] || 'application/octet-stream';
-  
-  // Read the file
-  fs.readFile(filePath, (err, content) => {
+  // Check if the path is a directory
+  fs.stat(filePath, (err, stats) => {
     if (err) {
+      // Handle file not found
       if (err.code === 'ENOENT') {
-        // File not found
         console.error(`File not found: ${filePath}`);
         res.statusCode = 404;
         res.end('Not Found');
       } else {
-        // Server error
         console.error(`Server error: ${err}`);
         res.statusCode = 500;
         res.end('Internal Server Error');
       }
+      return;
+    }
+    
+    // If it's a directory, look for index.html
+    if (stats.isDirectory()) {
+      const indexPath = path.join(filePath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        serveFile(indexPath, res);
+      } else {
+        // Generate directory listing
+        fs.readdir(filePath, (err, files) => {
+          if (err) {
+            res.statusCode = 500;
+            res.end('Internal Server Error');
+            return;
+          }
+          
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/html');
+          
+          const listing = `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Directory Listing</title>
+                <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  h1 { color: #333; }
+                  ul { list-style-type: none; padding: 0; }
+                  li { margin: 5px 0; }
+                  a { color: #0066cc; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+                </style>
+              </head>
+              <body>
+                <h1>Directory Listing: ${url}</h1>
+                <ul>
+                  ${url !== '/' ? '<li><a href="..">..</a></li>' : ''}
+                  ${files.map(file => `<li><a href="${path.join(url, file)}">${file}</a></li>`).join('')}
+                </ul>
+              </body>
+            </html>
+          `;
+          
+          res.end(listing);
+        });
+      }
     } else {
+      // It's a file, serve it
+      serveFile(filePath, res);
+    }
+  });
+  
+  function serveFile(filePath, res) {
+    // Get the file extension
+    const extname = path.extname(filePath);
+    
+    // Set content type based on file extension
+    const contentType = MIME_TYPES[extname] || 'application/octet-stream';
+    
+    // Read the file
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        res.statusCode = 500;
+        res.end('Internal Server Error');
+        return;
+      }
+      
       // Success! Set proper headers and return content
       res.statusCode = 200;
       res.setHeader('Content-Type', contentType);
@@ -75,14 +139,16 @@ const server = http.createServer((req, res) => {
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
       
-      // For JavaScript modules, make sure the correct MIME type is set
-      if (extname === '.js' && (url.includes('/components/') || url.includes('/services/'))) {
+      // For JavaScript modules, ensure the correct MIME type and add CORS headers
+      if (extname === '.js' || extname === '.mjs') {
         res.setHeader('Content-Type', 'text/javascript');
+        // Add CORS headers to allow modules to load properly
+        res.setHeader('Access-Control-Allow-Origin', '*');
       }
       
       res.end(content);
-    }
-  });
+    });
+  }
 });
 
 // Start the server
