@@ -1,4 +1,3 @@
-// components/YearPlannerGrid.js
 import { EventPositionCalculator } from '../services/EventPositionCalculator.js';
 
 export class YearPlannerGrid extends HTMLElement {
@@ -61,7 +60,7 @@ export class YearPlannerGrid extends HTMLElement {
         .year-grid {
           display: grid;
           /* Use fixed width columns for days to ensure equal sizing - first column is month names */
-          grid-template-columns: 5em repeat(35, minmax(20px, 1fr));
+          grid-template-columns: 3.75em repeat(35, minmax(20px, 1fr));
           grid-template-rows: 40px repeat(12, 80px);
           gap: 1px;
           background-color: #e0e0e0;
@@ -1146,7 +1145,12 @@ export class YearPlannerGrid extends HTMLElement {
 
     // Add ARIA attributes for accessibility
     eventEl.setAttribute('role', 'button');
-    eventEl.setAttribute('aria-label', tooltipContent.replace(/\n/g, ', '));
+    eventEl.setAttribute('aria-label', `Event: ${layoutEvent.title}`);
+
+    // Add aria-description with more details if available
+    if (layoutEvent.description) {
+      element.setAttribute('aria-description', layoutEvent.description);
+    }
   }
 
   /**
