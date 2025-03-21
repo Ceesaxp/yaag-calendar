@@ -42,25 +42,30 @@ export class YearPlannerApp {
    */
   async initialize() {
     try {
+      console.log('Initializing Year Planner application...');
+      
       // Initialize dependencies
       this.storageAdapter = new StorageAdapter();
       this.eventPositionCalculator = new EventPositionCalculator();
       this.recurrenceCalculator = new RecurrenceCalculator(this.currentYear);
 
+      // Create notification area if it doesn't exist
+      this.createNotificationArea();
+      
+      // Create application controls if they don't exist in the HTML
+      this.createApplicationControls();
+      
+      // Set up event listeners for controls
+      this.setupEventListeners();
+      
+      // Populate the year dropdown
+      this.populateYearDropdown();
+      
       // Create and append the event editor modal to the DOM
       this.createEventEditorModal();
 
       // Create and append the year planner grid to the DOM
       this.createYearPlannerGrid();
-
-      // Create notification area if it doesn't exist
-      this.createNotificationArea();
-
-      // Set up event listeners
-      this.setupEventListeners();
-      
-      // Populate the year dropdown
-      this.populateYearDropdown();
 
       // Load initial data
       await this.loadYear(this.currentYear);
@@ -141,6 +146,15 @@ export class YearPlannerApp {
       document.body.appendChild(container);
     }
 
+    // Clear any existing grid to prevent duplicates
+    if (this.yearPlannerGrid) {
+      try {
+        container.removeChild(this.yearPlannerGrid);
+      } catch (e) {
+        console.log('No existing grid to remove');
+      }
+    }
+
     // Ensure the YearPlannerGrid custom element is defined
     if (!customElements.get('year-planner-grid')) {
       customElements.define('year-planner-grid', YearPlannerGrid);
@@ -148,6 +162,11 @@ export class YearPlannerApp {
     }
 
     this.yearPlannerGrid = document.createElement('year-planner-grid');
+    
+    // Set explicit configuration for the grid
+    this.yearPlannerGrid.setAttribute('show-year-in-header', 'true');
+    this.yearPlannerGrid.setAttribute('first-column-width', 'narrow');
+    
     container.appendChild(this.yearPlannerGrid);
     console.log('YearPlannerGrid element created and appended to container');
 
@@ -184,24 +203,28 @@ export class YearPlannerApp {
    * Set up application event listeners
    */
   setupEventListeners() {
-    // Control elements
-    this.createApplicationControls();
-
     // Year navigation
     const prevYearBtn = document.getElementById('prevYear');
     const nextYearBtn = document.getElementById('nextYear');
     const yearSelect = document.getElementById('currentYear');
 
+    // Remove any existing event listeners to prevent duplicates
     if (prevYearBtn) {
-      prevYearBtn.addEventListener('click', () => this.navigateYear(-1));
+      const newPrevBtn = prevYearBtn.cloneNode(true);
+      prevYearBtn.parentNode.replaceChild(newPrevBtn, prevYearBtn);
+      newPrevBtn.addEventListener('click', () => this.navigateYear(-1));
     }
 
     if (nextYearBtn) {
-      nextYearBtn.addEventListener('click', () => this.navigateYear(1));
+      const newNextBtn = nextYearBtn.cloneNode(true);
+      nextYearBtn.parentNode.replaceChild(newNextBtn, nextYearBtn);
+      newNextBtn.addEventListener('click', () => this.navigateYear(1));
     }
 
     if (yearSelect) {
-      yearSelect.addEventListener('change', (e) => {
+      const newYearSelect = yearSelect.cloneNode(true);
+      yearSelect.parentNode.replaceChild(newYearSelect, yearSelect);
+      newYearSelect.addEventListener('change', (e) => {
         this.loadYear(parseInt(e.target.value));
       });
     }

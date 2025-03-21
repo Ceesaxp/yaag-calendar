@@ -144,6 +144,9 @@ const server = http.createServer((req, res) => {
         res.setHeader('Content-Type', 'text/javascript');
         // Add CORS headers to allow modules to load properly
         res.setHeader('Access-Control-Allow-Origin', '*');
+        // Add additional headers for module support
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       }
       
       res.end(content);
