@@ -13,6 +13,7 @@ import { Event, YearPlanner } from './domain/models.js';
 import EventEditorModal from './components/EventEditorModal.js';
 import { YearPlannerGrid } from './components/YearPlannerGrid.js';
 import { normalizeDateToUTC, createDateOnly, compareDates, getDaysBetween } from './utils/DateUtils.js';
+import { exportToPdf, exportToPdfUsingPrintStylesheet } from './utils/PdfExporter.js';
 
 // Log imports to help with debugging
 console.log('Modules imported successfully');
@@ -233,6 +234,7 @@ export class YearPlannerApp {
     // Import/Export
     const exportBtn = document.getElementById('exportData');
     const importBtn = document.getElementById('importData');
+    const exportPdfBtn = document.getElementById('exportPdf');
     const importFile = document.getElementById('importFile');
 
     if (exportBtn) {
@@ -241,6 +243,10 @@ export class YearPlannerApp {
 
     if (importBtn) {
       importBtn.addEventListener('click', () => this.showImportDialog());
+    }
+
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', () => this.exportToPdf());
     }
 
     if (importFile) {
@@ -336,6 +342,11 @@ export class YearPlannerApp {
     importBtn.id = 'importData';
     importBtn.textContent = 'Import Data';
     importBtn.style.padding = '5px 10px';
+    
+    const exportPdfBtn = document.createElement('button');
+    exportPdfBtn.id = 'exportPdf';
+    exportPdfBtn.textContent = 'Export to PDF';
+    exportPdfBtn.style.padding = '5px 10px';
 
     const importFile = document.createElement('input');
     importFile.id = 'importFile';
@@ -346,6 +357,7 @@ export class YearPlannerApp {
     actionButtons.appendChild(newEventBtn);
     actionButtons.appendChild(exportBtn);
     actionButtons.appendChild(importBtn);
+    actionButtons.appendChild(exportPdfBtn);
     actionButtons.appendChild(importFile);
 
     // Append everything to controls container
@@ -557,8 +569,18 @@ export class YearPlannerApp {
       let startDate = normalizeDateToUTC(eventData.startDate);
       let endDate = normalizeDateToUTC(eventData.endDate);
       
-      // For end dates, we want to include the full day
-      // No need to set to 23:59:59 since we're using date-only comparison
+      // Log dates for debugging
+      console.log('Start date before validation:', startDate);
+      console.log('End date before validation:', endDate);
+      
+      // Ensure end date is not before start date
+      if (endDate < startDate) {
+        // If end date is before start date, swap them
+        console.log('Swapping dates because end date is before start date');
+        const temp = endDate;
+        endDate = startDate;
+        startDate = temp;
+      }
       
       // Validate event dates are within the current year
       const startYear = startDate.getFullYear();
@@ -718,6 +740,71 @@ export class YearPlannerApp {
       reader.readAsText(file);
     });
   }
+  
+  /**
+   * Export the current year planner to PDF
+   */
+  async exportToPdf() {
+    try {
+      this.displayNotification('Preparing PDF export...', 'info');
+      
+      // Ensure all events are rendered before exporting
+      await this.refreshGrid();
+      
+      // Try the print stylesheet method first
+      try {
+        const pdfBlob = await exportToPdfUsingPrintStylesheet({
+          year: this.currentYear
+        });
+        
+        // Create a download link for the PDF
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `year-planner-${this.currentYear}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.displaySuccessMessage('PDF exported successfully');
+        return;
+      } catch (printError) {
+        console.warn('Print stylesheet method failed, falling back to direct rendering:', printError);
+      }
+      
+      // Fallback to direct rendering method
+      // Get the grid element and legend element
+      const gridElement = this.yearPlannerGrid;
+      const legendElement = document.querySelector('.event-legend');
+      
+      if (!gridElement) {
+        throw new Error('Year planner grid not found');
+      }
+      
+      // Generate the PDF
+      const pdfBlob = await exportToPdf({
+        year: this.currentYear,
+        gridElement,
+        legendElement
+      });
+      
+      // Create a download link for the PDF
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `year-planner-${this.currentYear}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      this.displaySuccessMessage('PDF exported successfully');
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+      this.displayErrorMessage(`Failed to export PDF: ${error.message}`);
+    }
+  }
 
   /**
    * Handle window resize events
@@ -725,11 +812,29 @@ export class YearPlannerApp {
   handleResize() {
     if (this.initialized && this.yearPlannerGrid) {
       // Force grid to recalculate layout
+      this.refreshGrid();
+    }
+  }
+  
+  /**
+   * Refresh the grid to ensure all events are properly rendered
+   * @returns {Promise<void>}
+   */
+  async refreshGrid() {
+    if (this.initialized && this.yearPlannerGrid) {
+      // Force grid to recalculate layout
       const currentEvents = this.yearPlannerGrid.events;
       const currentYear = this.yearPlannerGrid.year;
       
       this.yearPlannerGrid.events = [];
+      
+      // Wait a moment for the DOM to update
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       this.yearPlannerGrid.events = currentEvents;
+      
+      // Wait for events to be rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
