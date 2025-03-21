@@ -55,6 +55,9 @@ export class YearPlannerApp {
 
       // Set up event listeners
       this.setupEventListeners();
+      
+      // Populate the year dropdown
+      this.populateYearDropdown();
 
       // Load initial data
       await this.loadYear(this.currentYear);
@@ -66,6 +69,32 @@ export class YearPlannerApp {
       this.displayErrorMessage(
         'Failed to initialize application. Please refresh and try again.',
       );
+    }
+  }
+  
+  /**
+   * Populate the year dropdown with a range of years
+   */
+  populateYearDropdown() {
+    const yearSelect = document.getElementById('currentYear');
+    if (!yearSelect) return;
+    
+    // Clear existing options
+    yearSelect.innerHTML = '';
+    
+    // Add options for a reasonable range of years
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 10;
+    const endYear = currentYear + 10;
+    
+    for (let year = startYear; year <= endYear; year++) {
+      const option = document.createElement('option');
+      option.value = year;
+      option.textContent = year;
+      if (year === this.currentYear) {
+        option.selected = true;
+      }
+      yearSelect.appendChild(option);
     }
   }
 
@@ -235,6 +264,7 @@ export class YearPlannerApp {
     yearNav.style.display = 'flex';
     yearNav.style.alignItems = 'center';
     yearNav.style.gap = '10px';
+    yearNav.id = 'year-navigation';
 
     const prevYearBtn = document.createElement('button');
     prevYearBtn.id = 'prevYear';
@@ -243,18 +273,8 @@ export class YearPlannerApp {
 
     const yearSelect = document.createElement('select');
     yearSelect.id = 'currentYear';
-    // Populate select with reasonable year range
-    const currentYear = new Date().getFullYear();
-    for (let year = currentYear - 5; year <= currentYear + 5; year++) {
-      const option = document.createElement('option');
-      option.value = year;
-      option.textContent = year;
-      if (year === currentYear) {
-        option.selected = true;
-      }
-      yearSelect.appendChild(option);
-    }
     yearSelect.style.padding = '5px';
+    // We'll populate the select in the initialize method
 
     const nextYearBtn = document.createElement('button');
     nextYearBtn.id = 'nextYear';
@@ -321,8 +341,28 @@ export class YearPlannerApp {
     this.loading = true;
     try {
       this.currentYear = year;
+      
+      // Update the year dropdown to reflect the current year
       const yearSelect = document.getElementById('currentYear');
       if (yearSelect) {
+        // Check if the year exists in the dropdown
+        let yearOption = Array.from(yearSelect.options).find(option => parseInt(option.value) === year);
+        
+        // If the year doesn't exist in the dropdown, add it
+        if (!yearOption) {
+          yearOption = document.createElement('option');
+          yearOption.value = year;
+          yearOption.textContent = year;
+          yearSelect.appendChild(yearOption);
+          
+          // Sort the options
+          const options = Array.from(yearSelect.options);
+          options.sort((a, b) => parseInt(a.value) - parseInt(b.value));
+          yearSelect.innerHTML = '';
+          options.forEach(option => yearSelect.appendChild(option));
+        }
+        
+        // Set the selected value
         yearSelect.value = year;
       }
 
