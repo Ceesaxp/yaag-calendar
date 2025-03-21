@@ -298,24 +298,98 @@ event-editor-modal {
 
 /* ===== Print Styles ===== */
 @media print {
+  /* Set up page for landscape A4 with narrow margins */
+  @page {
+    size: A4 landscape;
+    margin: 0.5cm;
+  }
+  
+  /* Hide non-essential elements */
   header,
   footer,
   #app-controls,
-  .event-legend {
-    display: none;
+  #debug-tools,
+  .notification,
+  .import-export-group {
+    display: none !important;
   }
   
+  /* Show legend but optimize for print */
+  .event-legend {
+    display: flex;
+    padding: 0.1cm 0.2cm;
+    margin-bottom: 0.2cm;
+    border: none;
+    font-size: 8pt;
+    gap: 0.5cm;
+  }
+  
+  .legend-item {
+    font-size: 8pt;
+  }
+  
+  .legend-color {
+    width: 10px;
+    height: 10px;
+  }
+  
+  /* Container styling for print */
   .planner-container {
     border: none;
     overflow: visible;
+    width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+  
+  /* Ensure grid fits on the page */
+  year-planner-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    transform-origin: top left;
+    page-break-inside: avoid;
+  }
+  
+  /* Override shadow DOM styles for print - apply these in the component too */
+  ::slotted(.year-grid),
+  ::part(year-grid) {
+    font-size: 7pt !important;
+  }
+  
+  /* Basic body/document reset */
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    font-size: 10pt;
   }
   
   body {
-    background-color: white;
+    display: block;
   }
   
   main {
     padding: 0;
+    margin: 0;
+    max-width: none;
+    width: 100%;
+  }
+  
+  /* Hide any scrollbars */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }
 

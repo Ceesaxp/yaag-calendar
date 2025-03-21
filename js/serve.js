@@ -69,6 +69,12 @@ const server = http.createServer((req, res) => {
       res.statusCode = 200;
       res.setHeader('Content-Type', contentType);
       
+      // Disable caching for development purposes
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      
       // For JavaScript modules, make sure the correct MIME type is set
       if (extname === '.js' && (url.includes('/components/') || url.includes('/services/'))) {
         res.setHeader('Content-Type', 'text/javascript');

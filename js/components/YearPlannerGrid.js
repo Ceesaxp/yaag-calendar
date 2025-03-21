@@ -60,8 +60,8 @@ export class YearPlannerGrid extends HTMLElement {
 
         .year-grid {
           display: grid;
-          /* Use fixed width columns for days to ensure equal sizing */
-          grid-template-columns: 100px repeat(35, minmax(20px, 1fr));
+          /* Use fixed width columns for days to ensure equal sizing - first column is month names */
+          grid-template-columns: 5em repeat(35, minmax(20px, 1fr));
           grid-template-rows: 40px repeat(12, 80px);
           gap: 1px;
           background-color: #e0e0e0;
@@ -92,10 +92,22 @@ export class YearPlannerGrid extends HTMLElement {
           background-color: #f5f5f5;
         }
 
+        .weekday-name {
+          font-size: 0.9em; /* 10% smaller font for weekday names */
+        }
+        
+        .weekend-header {
+          background-color: #f8f3eb; /* Light cream background for weekend headers */
+        }
+        
         .day-cell {
           cursor: pointer;
           position: relative;
           overflow: visible;
+        }
+        
+        .day-cell.weekend {
+          background-color: #fcf9f2; /* Light cream background for weekend days */
         }
 
         .day-cell:hover {
@@ -339,7 +351,7 @@ export class YearPlannerGrid extends HTMLElement {
           font-weight: bold;
         }
       </style>
-      <div class="year-grid" id="grid"></div>
+      <div class="year-grid" id="grid" part="year-grid"></div>
     `;
   }
 
@@ -356,11 +368,10 @@ export class YearPlannerGrid extends HTMLElement {
     // Year selector cell in top-left corner (col 1, row 1)
     const yearCell = document.createElement('div');
     yearCell.className = 'header-cell';
+    yearCell.setAttribute('part', 'header-cell');
     yearCell.innerHTML = `
       <div class="year-selector">
-        <button id="prev-year">◀</button>
         <span class="year-value">${this._year}</span>
-        <button id="next-year">▶</button>
       </div>
     `;
     grid.appendChild(yearCell);
@@ -371,7 +382,21 @@ export class YearPlannerGrid extends HTMLElement {
       for (let day = 0; day < 7; day++) {
         const dayHeader = document.createElement('div');
         dayHeader.className = 'header-cell';
-        dayHeader.textContent = weekdays[day];
+        dayHeader.setAttribute('part', 'header-cell');
+        
+        // Add weekend class for Saturday and Sunday
+        if (day === 5 || day === 6) {
+          dayHeader.classList.add('weekend-header');
+          dayHeader.setAttribute('part', 'header-cell weekend-header');
+        }
+        
+        // Create smaller font for day names
+        const daySpan = document.createElement('span');
+        daySpan.className = 'weekday-name';
+        daySpan.setAttribute('part', 'weekday-name');
+        daySpan.textContent = weekdays[day];
+        dayHeader.appendChild(daySpan);
+        
         grid.appendChild(dayHeader);
       }
     }
@@ -404,6 +429,7 @@ export class YearPlannerGrid extends HTMLElement {
       // Add month name cell at the start of each row
       const monthCell = document.createElement('div');
       monthCell.className = 'month-cell';
+      monthCell.setAttribute('part', 'month-cell');
       monthCell.textContent = months[month];
       grid.appendChild(monthCell);
 
@@ -421,6 +447,7 @@ export class YearPlannerGrid extends HTMLElement {
       for (let position = 0; position < 35; position++) {
         const dayCell = document.createElement('div');
         dayCell.className = 'day-cell';
+        dayCell.setAttribute('part', 'day-cell');
 
         // Calculate the day number (1-based)
         const dayOffset = position - firstDayOfWeek;
@@ -428,11 +455,25 @@ export class YearPlannerGrid extends HTMLElement {
 
         // Only show day numbers for valid days in the month
         if (dayNumber > 0 && dayNumber <= daysInMonth) {
-          dayCell.innerHTML = `<div class="day-number">${dayNumber}</div>`;
+          const dayNumberDiv = document.createElement('div');
+          dayNumberDiv.className = 'day-number';
+          dayNumberDiv.setAttribute('part', 'day-number');
+          dayNumberDiv.textContent = dayNumber;
+          dayCell.appendChild(dayNumberDiv);
 
           // Store data attributes for identifying the cell
           dayCell.dataset.month = month;
           dayCell.dataset.day = dayNumber;
+          
+          // Get the day of week to check for weekends
+          const cellDate = new Date(this._year, month, dayNumber);
+          const dayOfWeek = cellDate.getDay(); // 0 = Sunday, 6 = Saturday
+          
+          // Add weekend class for Saturday (6) and Sunday (0)
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            dayCell.classList.add('weekend');
+            dayCell.setAttribute('part', 'day-cell weekend');
+          }
 
           // Check if this is today's date and highlight it
           if (
@@ -476,38 +517,10 @@ export class YearPlannerGrid extends HTMLElement {
       this._layoutEvents ? this._layoutEvents.length : 0,
     );
 
-    // Add a hardcoded test event for debugging
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentDay = today.getDate();
-
-    // Create a direct test event with hardcoded positions
-    // const directTestEvent = {
-    //   id: 'direct-test-event',
-    //   title: 'FORCED TEST EVENT',
-    //   description: 'This event bypasses positioning calculations',
-    //   startDate: today,
-    //   endDate: today,
-    //   position: {
-    //     swimLane: 0
-    //   },
-    //   isTestEvent: true
-    // };
-
-    // console.log('YearPlannerGrid: Adding direct test event', directTestEvent);
-
     if (!this._layoutEvents || this._layoutEvents.length === 0) {
-      console.log(
-        'YearPlannerGrid: No layout events to render, using only direct test event',
-      );
-      this._layoutEvents = [directTestEvent];
+      console.log('YearPlannerGrid: No layout events to render');
+      return;
     } else {
-      console.log(
-        'YearPlannerGrid: Adding direct test event to existing events',
-      );
-      // Still render the original events too
-      this._layoutEvents.push(directTestEvent);
-
       // Debug: Log the layout events data structure
       console.log(
         'YearPlannerGrid: Layout Events Structure:',
@@ -839,16 +852,21 @@ export class YearPlannerGrid extends HTMLElement {
     // Create segment element
     const segmentEl = document.createElement('div');
     let className = 'event-segment';
+    let partName = 'event-segment';
 
     if (layoutEvent.isPublicHoliday) {
       className += ' holiday';
+      partName += ' holiday';
     } else if (layoutEvent.isTestEvent) {
       className += ' test-event';
+      partName += ' test-event';
     } else {
       className += ' regular';
+      partName += ' regular';
     }
 
     segmentEl.className = className;
+    segmentEl.setAttribute('part', partName);
 
     // Set event ID for hover effects
     segmentEl.dataset.eventId = layoutEvent.id;
@@ -1013,16 +1031,21 @@ export class YearPlannerGrid extends HTMLElement {
     // Create event element
     const eventEl = document.createElement('div');
     let className = 'event';
+    let partName = 'event';
 
     if (layoutEvent.isPublicHoliday) {
       className += ' holiday';
+      partName += ' holiday';
     } else if (layoutEvent.isTestEvent) {
       className += ' test-event';
+      partName += ' test-event';
     } else {
       className += ' regular';
+      partName += ' regular';
     }
 
     eventEl.className = className;
+    eventEl.setAttribute('part', partName);
     eventEl.textContent = layoutEvent.title;
     eventEl.dataset.eventId = layoutEvent.id;
     eventEl.dataset.originalEventId =

@@ -1,0 +1,207 @@
+/**
+ * print.css - Dedicated print stylesheet for Year-At-A-Glance Calendar
+ * 
+ * This stylesheet is designed to optimize the calendar for printing
+ * on landscape A4 paper with narrow margins.
+ */
+
+@media print {
+  /* Basic page setup */
+  @page {
+    size: A4 landscape;
+    margin: 0.4cm;
+  }
+  
+  /* Hide unnecessary elements */
+  header,
+  footer,
+  #app-controls,
+  #debug-tools,
+  .notification,
+  .import-export-group,
+  .btn,
+  input[type="file"] {
+    display: none !important;
+  }
+  
+  /* Show page title for context */
+  body::before {
+    content: "Year At A Glance Calendar: " attr(data-year);
+    display: block;
+    text-align: center;
+    font-size: 12pt;
+    font-weight: bold;
+    margin-bottom: 0.2cm;
+  }
+  
+  /* Basic body/document reset */
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    font-size: 6pt;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  body {
+    display: block;
+  }
+  
+  /* Main container */
+  main {
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    width: 100%;
+  }
+  
+  /* Show legend but optimize for print */
+  .event-legend {
+    display: flex;
+    padding: 0.05cm 0.1cm;
+    margin-bottom: 0.1cm;
+    border: none;
+    font-size: 6pt;
+    justify-content: center;
+    gap: 0.4cm;
+    page-break-after: avoid;
+  }
+  
+  .legend-item {
+    font-size: 6pt;
+  }
+  
+  .legend-color {
+    width: 6px;
+    height: 6px;
+  }
+  
+  /* Container styling for print */
+  .planner-container {
+    border: none;
+    overflow: visible;
+    width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+    box-shadow: none;
+    font-size: 6pt;
+  }
+  
+  /* Grid component */
+  year-planner-grid {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    transform-origin: top left;
+    page-break-inside: avoid;
+    font-size: 6pt;
+  }
+  
+  /* Additional selectors to target grid internals */
+  year-planner-grid::part(year-grid) {
+    grid-template-rows: 26px repeat(12, 52px) !important; /* 35% smaller row height */
+    gap: 0.5px !important;
+    font-size: 6pt !important;
+  }
+  
+  /* Target for header cells */
+  year-planner-grid .header-cell,
+  year-planner-grid::part(header-cell) {
+    padding: 1px !important;
+    font-size: 6pt !important;
+    height: 18px !important;
+  }
+  
+  /* Target for month cells */
+  year-planner-grid .month-cell,
+  year-planner-grid::part(month-cell) {
+    font-size: 6pt !important;
+    padding: 1px 2px !important;
+    height: auto !important;
+  }
+  
+  /* Target for day cells */
+  year-planner-grid .day-cell,
+  year-planner-grid::part(day-cell) {
+    font-size: 6pt !important;
+    height: 52px !important; /* 35% smaller than original 80px */
+    padding: 1px !important;
+  }
+  
+  /* Day number positioning and sizing */
+  year-planner-grid .day-number,
+  year-planner-grid::part(day-number) {
+    font-size: 5pt !important;
+    top: 0px !important;
+    right: 1px !important;
+  }
+  
+  /* Event sizing and positioning */
+  year-planner-grid .event,
+  year-planner-grid .event-segment,
+  year-planner-grid::part(event),
+  year-planner-grid::part(event-segment) {
+    font-size: 5pt !important;
+    padding: 0px 2px !important;
+    margin: 0px !important;
+    height: 10px !important; /* Smaller event height */
+    min-height: 10px !important;
+    line-height: 10px !important;
+    border-radius: 1px !important;
+  }
+  
+  /* Event indicators */
+  year-planner-grid .event-indicators,
+  year-planner-grid .event-icon,
+  year-planner-grid::part(event-indicators),
+  year-planner-grid::part(event-icon) {
+    display: none !important; /* Hide indicators to save space */
+  }
+  
+  /* Event date range (hide to save space) */
+  year-planner-grid .event-date-range,
+  year-planner-grid::part(event-date-range) {
+    display: none !important;
+  }
+  
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Hide any scrollbars */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* No page breaks inside the grid */
+  .year-grid,
+  .month-cell,
+  .day-cell {
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Print preview class for testing print layout in browser */
+.print-preview {
+  width: 29.7cm;
+  height: 21cm;
+  margin: 1cm auto;
+  padding: 0.5cm;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+  font-size: 9pt;
+}
+
+.print-preview year-planner-grid {
+  transform: scale(0.9);
+  transform-origin: top left;
+}

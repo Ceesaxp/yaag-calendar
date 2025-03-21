@@ -365,6 +365,9 @@ export class YearPlannerApp {
         // Set the selected value
         yearSelect.value = year;
       }
+      
+      // Set the year as a data attribute on body for print stylesheet
+      document.body.dataset.year = year;
 
       // Update recurrence calculator for new year
       this.recurrenceCalculator = new RecurrenceCalculator(year);
@@ -770,6 +773,29 @@ export class YearPlannerApp {
  * Initialize the application when the DOM is fully loaded
  */
 document.addEventListener('DOMContentLoaded', () => {
+  // Check for debug parameter in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const debugEnabled = urlParams.get('debugEnabled') === 'true';
+  
+  // Set up debug mode based on URL parameter
+  if (!debugEnabled) {
+    // Hide debug tools if not enabled
+    const debugTools = document.getElementById('debug-tools');
+    if (debugTools) {
+      debugTools.style.display = 'none';
+    }
+    
+    // Override console.log to suppress debug messages
+    const originalConsoleLog = console.log;
+    console.log = function(...args) {
+      // Allow error and warn to pass through
+      if (typeof args[0] === 'string' && args[0].includes('Error') || args[0].includes('Failed')) {
+        originalConsoleLog.apply(console, args);
+      }
+      // Otherwise suppress debug logs
+    };
+  }
+
   const app = new YearPlannerApp();
   app.initialize().catch(error => {
     console.error('Failed to initialize application:', error);
