@@ -44,16 +44,16 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
           ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
-          run: |
-            echo "Deploying YAAG Calendar to $ENVIRONMENT environment on $SSH_HOST..."
+        run: |
+          echo "Deploying YAAG Calendar to $ENVIRONMENT environment on $SSH_HOST..."
 
-            # Create a directory without node_modules and .git
-            mkdir -p deploy
-            cp -r css js index.html README.md deploy/
+          # Create a directory without node_modules and .git
+          mkdir -p deploy
+          cp -r css js index.html README.md deploy/
 
-            # Deploy files using rsync over SSH with --no-times option to avoid permission errors
-            rsync -avz --delete --chmod=Du+w --no-times -e "ssh -p $SSH_PORT" \
-              deploy/ \
-              $SSH_USERNAME@$SSH_HOST:$REMOTE_PATH
+          # Deploy files using rsync over SSH
+          rsync -avz --delete --no-times --chmod=Du+w -e "ssh -p $SSH_PORT" \
+                      deploy/ \
+                      $SSH_USERNAME@$SSH_HOST:$REMOTE_PATH
 
-            echo "Deployment completed successfully!"
+          echo "Deployment completed successfully!"
