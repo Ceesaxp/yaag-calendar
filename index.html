@@ -13,6 +13,11 @@
       <h1>Year-At-A-Glance Calendar</h1>
       <p class="app-description">A high-level visual planning tool for annual events and commitments</p>
     </div>
+    <nav class="main-nav">
+      <ul>
+        <li><a href="doc/user-manual.md" target="_blank">User Manual</a></li>
+      </ul>
+    </nav>
   </header>
 
   <main>
@@ -28,6 +33,7 @@
         <div class="import-export-group">
           <button id="exportData" class="btn">Export Data</button>
           <button id="importData" class="btn">Import Data</button>
+          <button id="exportPdf" class="btn">Export to PDF</button>
           <input type="file" id="importFile" accept=".json" style="display: none;">
         </div>
       </div>
@@ -158,6 +164,6 @@
   </script>
 
   <!-- Load JavaScript modules -->
-  <script type="module" src="js/app.js?v=1.0.5"></script>
+  <script type="module" src="js/app.js?v=1.0.8"></script>
 </body>
 </html>

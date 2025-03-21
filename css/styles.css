@@ -67,6 +67,31 @@ header {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.main-nav {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-top: var(--spacing-sm);
+}
+
+.main-nav ul {
+  display: flex;
+  list-style: none;
+  gap: var(--spacing-md);
+}
+
+.main-nav a {
+  color: white;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.main-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .app-header {
   max-width: 1400px;
   margin: 0 auto;
