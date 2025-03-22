@@ -273,15 +273,23 @@ footer {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
   min-height: 600px;
   background-color: white;
   position: relative;
+  /* Create a new stacking context */
+  isolation: isolate;
+  /* Prevent content from disappearing on some mobile browsers */
+  transform: translateZ(0);
+  will-change: transform; /* Hint to browser to use hardware acceleration */
 }
 
 /* Apply minimal width to ensure the grid is visible */
 year-planner-grid {
   min-width: 1200px;
   display: block;
+  /* Help maintain visual hierarchy */
+  transform: translateZ(0);
 }
 
 /* ===== Notification ===== */
