@@ -327,6 +327,27 @@ export class YearPlannerApp {
     const actionButtons = document.createElement('div');
     actionButtons.style.display = 'flex';
     actionButtons.style.gap = '10px';
+    actionButtons.style.alignItems = 'center';
+
+    // User Manual button
+    const userManualBtn = document.createElement('a');
+    userManualBtn.href = '/user-manual.html';
+    userManualBtn.target = '_blank';
+    userManualBtn.textContent = 'User Manual';
+    userManualBtn.style.padding = '5px 10px';
+    userManualBtn.style.textDecoration = 'none';
+    userManualBtn.style.backgroundColor = '#f8f9fa';
+    userManualBtn.style.color = '#212529';
+    userManualBtn.style.borderRadius = '4px';
+    userManualBtn.style.border = '1px solid #ced4da';
+    userManualBtn.style.cursor = 'pointer';
+
+    // Separator after User Manual
+    const separator1 = document.createElement('div');
+    separator1.style.width = '1px';
+    separator1.style.height = '20px';
+    separator1.style.backgroundColor = '#ced4da';
+    separator1.style.margin = '0 16px';
 
     const newEventBtn = document.createElement('button');
     newEventBtn.id = 'newEvent';
@@ -338,25 +359,52 @@ export class YearPlannerApp {
     newEventBtn.style.borderRadius = '4px';
     newEventBtn.style.cursor = 'pointer';
 
+    // Import/Export group
+    const importExportGroup = document.createElement('div');
+    importExportGroup.style.display = 'flex';
+    importExportGroup.style.gap = '10px';
+    importExportGroup.style.alignItems = 'center';
+
     const exportBtn = document.createElement('button');
     exportBtn.id = 'exportData';
     exportBtn.textContent = 'Export Data';
     exportBtn.style.padding = '5px 10px';
+    exportBtn.style.borderRadius = '4px';
+    exportBtn.style.border = '1px solid #ced4da';
+    exportBtn.style.cursor = 'pointer';
 
     const importBtn = document.createElement('button');
     importBtn.id = 'importData';
     importBtn.textContent = 'Import Data';
     importBtn.style.padding = '5px 10px';
+    importBtn.style.borderRadius = '4px';
+    importBtn.style.border = '1px solid #ced4da';
+    importBtn.style.cursor = 'pointer';
     
     const exportPdfBtn = document.createElement('button');
     exportPdfBtn.id = 'exportPdf';
     exportPdfBtn.textContent = 'Export to PDF';
     exportPdfBtn.style.padding = '5px 10px';
+    exportPdfBtn.style.borderRadius = '4px';
+    exportPdfBtn.style.border = '1px solid #ced4da';
+    exportPdfBtn.style.cursor = 'pointer';
+
+    // Separator before Reset button
+    const separator2 = document.createElement('div');
+    separator2.style.width = '1px';
+    separator2.style.height = '20px';
+    separator2.style.backgroundColor = '#ced4da';
+    separator2.style.margin = '0 16px';
 
     const resetBtn = document.createElement('button');
     resetBtn.id = 'resetCalendar';
     resetBtn.textContent = 'Reset';
     resetBtn.style.padding = '5px 10px';
+    resetBtn.style.backgroundColor = '#f44336';
+    resetBtn.style.color = 'white';
+    resetBtn.style.border = 'none';
+    resetBtn.style.borderRadius = '4px';
+    resetBtn.style.cursor = 'pointer';
 
     const importFile = document.createElement('input');
     importFile.id = 'importFile';
@@ -364,12 +412,19 @@ export class YearPlannerApp {
     importFile.accept = '.json';
     importFile.style.display = 'none';
 
+    // Add buttons to the action buttons container
+    actionButtons.appendChild(userManualBtn);
+    actionButtons.appendChild(separator1);
     actionButtons.appendChild(newEventBtn);
-    actionButtons.appendChild(exportBtn);
-    actionButtons.appendChild(importBtn);
-    actionButtons.appendChild(exportPdfBtn);
-    actionButtons.appendChild(resetBtn);
-    actionButtons.appendChild(importFile);
+    actionButtons.appendChild(importExportGroup);
+    
+    // Add buttons to import/export group
+    importExportGroup.appendChild(exportBtn);
+    importExportGroup.appendChild(importBtn);
+    importExportGroup.appendChild(exportPdfBtn);
+    importExportGroup.appendChild(separator2);
+    importExportGroup.appendChild(resetBtn);
+    importExportGroup.appendChild(importFile);
 
     // Append everything to controls container
     controlsContainer.appendChild(yearNav);

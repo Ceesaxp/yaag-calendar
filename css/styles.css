@@ -154,6 +154,14 @@ footer {
 .import-export-group {
   display: flex;
   gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.control-separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  margin: 0 var(--spacing-md);
 }
 
 .btn {
@@ -191,6 +199,22 @@ footer {
 
 .btn-nav {
   background-color: var(--neutral-light);
+}
+
+.btn-danger {
+  background-color: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+}
+
+.btn-danger:hover {
+  background-color: #d32f2f;
+  border-color: #d32f2f;
+}
+
+.btn-manual {
+  background-color: var(--neutral-light);
+  text-decoration: none;
 }
 
 .year-select {
@@ -292,12 +316,30 @@ event-editor-modal {
   .action-buttons {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+
+  .action-buttons {
+    margin-top: var(--spacing-md);
   }
 
   .import-export-group {
     margin-top: var(--spacing-sm);
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+  
+  /* Hide separators on mobile */
+  .control-separator {
+    display: none;
+  }
+  
+  /* Give more space to reset button */
+  .btn-danger {
+    margin-top: var(--spacing-sm);
   }
 
   .planner-container {
@@ -335,7 +377,9 @@ event-editor-modal {
   #app-controls,
   #debug-tools,
   .notification,
-  .import-export-group {
+  .import-export-group,
+  .btn-manual,
+  .control-separator {
     display: none !important;
   }
   
