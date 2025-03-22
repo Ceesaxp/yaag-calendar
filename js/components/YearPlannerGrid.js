@@ -154,6 +154,10 @@ export class YearPlannerGrid extends HTMLElement {
           text-overflow: ellipsis;
           cursor: pointer;
           z-index: 10;
+          /* Fix for mobile rendering issues */
+          transform: translateZ(0);
+          will-change: transform;
+          backface-visibility: hidden;
         }
 
         .event.holiday {
@@ -189,6 +193,10 @@ export class YearPlannerGrid extends HTMLElement {
           z-index: 10;
           box-sizing: border-box;
           transition: all 0.15s ease-in-out;
+          /* Fix for mobile rendering issues */
+          transform: translateZ(0);
+          will-change: transform;
+          backface-visibility: hidden;
         }
 
         .event-segment.holiday {
@@ -740,8 +748,24 @@ export class YearPlannerGrid extends HTMLElement {
       // Use debounced approach to reduce flickering
       let hoverTimeout;
       const hoverDelay = 50; // ms
+      let isTouch = false; // Detect touch devices
+
+      // Detect touch capability
+      try {
+        isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      } catch (e) {
+        // Fallback if detection fails
+        isTouch = false;
+      }
 
       segments.forEach((segment) => {
+        // Skip hover effects on touch devices to prevent glitches
+        if (isTouch) {
+          // For touch devices, we'll leave the hover CSS states to handle this
+          // But we'll still make the segment interactive for clicks
+          return;
+        }
+
         // Handle mouse enter with delay
         segment.addEventListener('mouseenter', () => {
           clearTimeout(hoverTimeout);
@@ -993,7 +1017,7 @@ export class YearPlannerGrid extends HTMLElement {
       // Position relative to the first cell
       segmentEl.style.width = `${width - 2}px`; // Subtract margin
       firstCell.appendChild(segmentEl);
-      segmentEl.style.zIndex = 15; // Make sure it overlays other cells
+      segmentEl.style.zIndex = 100; // Make sure it overlays other cells during scrolling
     }
 
     // Add click event handler
@@ -1126,7 +1150,7 @@ export class YearPlannerGrid extends HTMLElement {
 
       eventEl.style.width = `${width - 2}px`; // Subtract margin
       firstCell.appendChild(eventEl);
-      eventEl.style.zIndex = 10; // Make sure it overlays other cells
+      eventEl.style.zIndex = 100; // Make sure it overlays other cells during scrolling
     }
 
     // Add click event handler
