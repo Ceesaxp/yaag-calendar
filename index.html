@@ -13,11 +13,7 @@
       <h1>Year-At-A-Glance Calendar</h1>
       <p class="app-description">A high-level visual planning tool for annual events and commitments</p>
     </div>
-    <nav class="main-nav">
-      <ul>
-        <li><a href="/user-manual.html" target="_blank">User Manual</a></li>
-      </ul>
-    </nav>
+    <!-- Removed navigation from header -->
   </header>
 
   <main>
@@ -29,12 +25,15 @@
       </div>
 
       <div class="action-buttons">
+        <a href="/user-manual.html" target="_blank" class="btn btn-manual">User Manual</a>
+        <div class="control-separator"></div>
         <button id="newEvent" class="btn btn-primary">+ New Event</button>
         <div class="import-export-group">
           <button id="exportData" class="btn">Export Data</button>
           <button id="importData" class="btn">Import Data</button>
           <button id="exportPdf" class="btn">Export to PDF</button>
-          <button id="resetCalendar" class="btn">Reset</button>
+          <div class="control-separator"></div>
+          <button id="resetCalendar" class="btn btn-danger">Reset</button>
           <input type="file" id="importFile" accept=".json" style="display: none;">
         </div>
       </div>

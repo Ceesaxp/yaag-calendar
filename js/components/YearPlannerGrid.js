@@ -133,11 +133,12 @@ export class YearPlannerGrid extends HTMLElement {
 
         .day-number {
           position: absolute;
-          top: 1px;
+          top: 2px;
           right: 3px;
-          font-size: 0.7em;
-          color: #666;
-          opacity: 0.8;
+          font-size: 0.85em;
+          color: #555;
+          opacity: 0.9;
+          font-weight: 500;
         }
 
         .event {
