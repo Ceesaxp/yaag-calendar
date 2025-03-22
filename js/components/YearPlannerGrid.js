@@ -1174,7 +1174,7 @@ export class YearPlannerGrid extends HTMLElement {
 
     // Add aria-description with more details if available
     if (layoutEvent.description) {
-      element.setAttribute('aria-description', layoutEvent.description);
+      eventEl.setAttribute('aria-description', layoutEvent.description);
     }
   }
 
