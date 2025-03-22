@@ -294,7 +294,7 @@ class EventEditorModal extends HTMLElement {
   }
 
   handleDelete() {
-    if (confirm('Are you sure you want to delete this event?')) {
+    this.showConfirmationDialog('Are you sure you want to delete this event?', () => {
       const deleteEvent = new CustomEvent('event-delete', {
         detail: { eventId: this.event.id },
         bubbles: true,
@@ -303,6 +303,16 @@ class EventEditorModal extends HTMLElement {
 
       this.dispatchEvent(deleteEvent);
       this.close();
+    });
+  }
+
+  showConfirmationDialog(message, onConfirm) {
+    const confirmation = confirm(message);
+    if (confirmation) {
+      const secondConfirmation = prompt('Type "Yes, I understand" to confirm.');
+      if (secondConfirmation === 'Yes, I understand') {
+        onConfirm();
+      }
     }
   }
 
