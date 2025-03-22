@@ -681,8 +681,8 @@ export class YearPlannerApp {
       if (!confirmed) return;
 
       // Show second confirmation dialog
-      const secondConfirmed = confirm('This action cannot be undone. Type "Yes, I understand" to confirm.');
-      if (secondConfirmed !== 'Yes, I understand') return;
+      const secondConfirmation = prompt('This action cannot be undone. Type "Yes, I understand" to confirm.');
+      if (secondConfirmation !== 'Yes, I understand') return;
 
       // Clear all data
       await this.storageAdapter.clearAllData();
