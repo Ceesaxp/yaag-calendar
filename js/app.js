@@ -236,6 +236,7 @@ export class YearPlannerApp {
     const importBtn = document.getElementById('importData');
     const exportPdfBtn = document.getElementById('exportPdf');
     const importFile = document.getElementById('importFile');
+    const resetBtn = document.getElementById('resetCalendar');
 
     if (exportBtn) {
       exportBtn.addEventListener('click', () => this.exportData());
@@ -251,6 +252,10 @@ export class YearPlannerApp {
 
     if (importFile) {
       importFile.addEventListener('change', (e) => this.handleImportFile(e));
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => this.handleResetCalendar());
     }
 
     // New event button
@@ -348,6 +353,11 @@ export class YearPlannerApp {
     exportPdfBtn.textContent = 'Export to PDF';
     exportPdfBtn.style.padding = '5px 10px';
 
+    const resetBtn = document.createElement('button');
+    resetBtn.id = 'resetCalendar';
+    resetBtn.textContent = 'Reset';
+    resetBtn.style.padding = '5px 10px';
+
     const importFile = document.createElement('input');
     importFile.id = 'importFile';
     importFile.type = 'file';
@@ -358,6 +368,7 @@ export class YearPlannerApp {
     actionButtons.appendChild(exportBtn);
     actionButtons.appendChild(importBtn);
     actionButtons.appendChild(exportPdfBtn);
+    actionButtons.appendChild(resetBtn);
     actionButtons.appendChild(importFile);
 
     // Append everything to controls container
@@ -657,6 +668,32 @@ export class YearPlannerApp {
     } catch (error) {
       console.error('Error deleting event:', error);
       this.displayErrorMessage(`Failed to delete event: ${error.message}`);
+    }
+  }
+
+  /**
+   * Handle resetting the calendar
+   */
+  async handleResetCalendar() {
+    try {
+      // Show confirmation dialog
+      const confirmed = confirm('Are you sure you want to reset the calendar? This will delete all events.');
+      if (!confirmed) return;
+
+      // Show second confirmation dialog
+      const secondConfirmation = prompt('This action cannot be undone. Type "Yes, I understand" to confirm.');
+      if (secondConfirmation !== 'Yes, I understand') return;
+
+      // Clear all data
+      await this.storageAdapter.clearAllData();
+
+      // Reload the year to reflect changes
+      await this.loadYear(this.currentYear);
+
+      this.displaySuccessMessage('Calendar reset successfully');
+    } catch (error) {
+      console.error('Error resetting calendar:', error);
+      this.displayErrorMessage(`Failed to reset calendar: ${error.message}`);
     }
   }
 

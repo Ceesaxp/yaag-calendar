@@ -224,6 +224,27 @@ class StorageAdapter {
       return value;
     });
   }
+
+  /**
+   * Clear all events from local storage
+   * @returns {boolean} Success status
+   */
+  clearAllData() {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(this.namespace)) {
+          keys.push(key);
+        }
+      }
+      keys.forEach((key) => localStorage.removeItem(key));
+      return true;
+    } catch (error) {
+      console.error('Failed to clear all data:', error);
+      return false;
+    }
+  }
 }
 
 // Domain models for reference (would typically be imported)

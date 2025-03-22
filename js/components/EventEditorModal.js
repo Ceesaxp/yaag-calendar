@@ -306,6 +306,16 @@ class EventEditorModal extends HTMLElement {
     }
   }
 
+  showConfirmationDialog(message, onConfirm) {
+    const confirmation = confirm(message);
+    if (confirmation) {
+      const secondConfirmation = prompt('Type "Yes, I understand" to confirm.');
+      if (secondConfirmation === 'Yes, I understand') {
+        onConfirm();
+      }
+    }
+  }
+
   render() {
     this.shadowRoot.innerHTML = `
       <style>
