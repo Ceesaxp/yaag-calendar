@@ -78,11 +78,12 @@ EventLayout extends Event {
 ## Layout Engine
 
 ### Grid Structure
-- 36-column grid: 1 month column + 35 weekday columns (5 weeks)
+- 38-column grid: 1 month column + 37 weekday columns (5 weeks + 2 days)
 - 13 rows (week day names + months)
 - Each row starts with a month name in the first column
 - Weekday headers repeating every 7 columns
 - Year selector in top-left cell
+- The expanded 37-day grid ensures all months fit properly (even 31-day months starting on Sunday)
 
 ### Event Positioning Algorithm
 

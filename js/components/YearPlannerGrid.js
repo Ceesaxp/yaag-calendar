@@ -60,7 +60,7 @@ export class YearPlannerGrid extends HTMLElement {
         .year-grid {
           display: grid;
           /* Use fixed width columns for days to ensure equal sizing - first column is month names */
-          grid-template-columns: 3.75em repeat(35, minmax(20px, 1fr));
+          grid-template-columns: 3.75em repeat(37, minmax(20px, 1fr));
           grid-template-rows: 40px repeat(12, 80px);
           gap: 1px;
           background-color: #e0e0e0;
@@ -384,29 +384,31 @@ export class YearPlannerGrid extends HTMLElement {
     `;
     grid.appendChild(yearCell);
 
-    // Weekday headers (all 35 columns - 5 weeks of 7 days each)
+    // Weekday headers (all 37 columns - 5 weeks + 2 extra days)
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    for (let week = 0; week < 5; week++) {
-      for (let day = 0; day < 7; day++) {
-        const dayHeader = document.createElement('div');
-        dayHeader.className = 'header-cell';
-        dayHeader.setAttribute('part', 'header-cell');
-        
-        // Add weekend class for Saturday and Sunday
-        if (day === 5 || day === 6) {
-          dayHeader.classList.add('weekend-header');
-          dayHeader.setAttribute('part', 'header-cell weekend-header');
-        }
-        
-        // Create smaller font for day names
-        const daySpan = document.createElement('span');
-        daySpan.className = 'weekday-name';
-        daySpan.setAttribute('part', 'weekday-name');
-        daySpan.textContent = weekdays[day];
-        dayHeader.appendChild(daySpan);
-        
-        grid.appendChild(dayHeader);
+    // Calculate total number of columns needed (5 weeks + 2 extra days = 37 columns)
+    const totalDaysToRender = 37;
+    
+    for (let i = 0; i < totalDaysToRender; i++) {
+      const dayIndex = i % 7; // Get day of week (0-6)
+      const dayHeader = document.createElement('div');
+      dayHeader.className = 'header-cell';
+      dayHeader.setAttribute('part', 'header-cell');
+      
+      // Add weekend class for Saturday and Sunday
+      if (dayIndex === 5 || dayIndex === 6) {
+        dayHeader.classList.add('weekend-header');
+        dayHeader.setAttribute('part', 'header-cell weekend-header');
       }
+      
+      // Create smaller font for day names
+      const daySpan = document.createElement('span');
+      daySpan.className = 'weekday-name';
+      daySpan.setAttribute('part', 'weekday-name');
+      daySpan.textContent = weekdays[dayIndex];
+      dayHeader.appendChild(daySpan);
+      
+      grid.appendChild(dayHeader);
     }
   }
 
@@ -451,8 +453,8 @@ export class YearPlannerGrid extends HTMLElement {
       let firstDayOfWeek = firstDay.getDay() - 1;
       if (firstDayOfWeek < 0) firstDayOfWeek = 6; // Sunday becomes 6
 
-      // Create day cells for each position in the 5-week grid
-      for (let position = 0; position < 35; position++) {
+      // Create day cells for each position in the expanded grid (up to 37 days)
+      for (let position = 0; position < 37; position++) {
         const dayCell = document.createElement('div');
         dayCell.className = 'day-cell';
         dayCell.setAttribute('part', 'day-cell');

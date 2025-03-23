@@ -13,6 +13,7 @@
 3. **Visual Layout Improvements**
    - Fixed: Day numbers are now smaller and less obtrusive in the calendar grid
    - Fixed: Day columns now have equal sizing for consistent display
+   - Fixed: Expanded the grid from 35 to 37 columns to properly accommodate all months, including 31-day months starting on Sunday
 
 4. **Date Handling Issues**
    - Fixed: Normalized date objects by setting consistent time components for reliable comparison

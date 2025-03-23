@@ -286,7 +286,7 @@ footer {
 
 /* Apply minimal width to ensure the grid is visible */
 year-planner-grid {
-  min-width: 1200px;
+  min-width: 1300px; /* Increased to accommodate the wider 37-column grid */
   display: block;
   /* Help maintain visual hierarchy */
   transform: translateZ(0);
@@ -524,7 +524,7 @@ event-editor-modal {
 /* Adjust the grid-template-columns property in the .year-grid class */
 .year-grid {
   display: grid;
-  grid-template-columns: 3.75em repeat(35, minmax(20px, 1fr));
+  grid-template-columns: 3.75em repeat(37, minmax(20px, 1fr));
   grid-template-rows: 40px repeat(12, 80px);
   gap: 1px;
   background-color: var(--grid-line-color);
