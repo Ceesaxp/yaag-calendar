@@ -14,6 +14,7 @@ import EventEditorModal from './components/EventEditorModal.js';
 import { YearPlannerGrid } from './components/YearPlannerGrid.js';
 import { normalizeDateToUTC, createDateOnly, compareDates, getDaysBetween } from './utils/DateUtils.js';
 import { exportToPdf, exportToPdfUsingPrintStylesheet } from './utils/PdfExporter.js';
+import UserManualModal from './components/UserManualModal.js';
 
 // Log imports to help with debugging
 console.log('Modules imported successfully');
@@ -65,6 +66,9 @@ export class YearPlannerApp {
       
       // Create and append the event editor modal to the DOM
       this.createEventEditorModal();
+      
+      // Create and append the user manual modal to the DOM
+      this.createUserManualModal();
 
       // Create and append the year planner grid to the DOM
       this.createYearPlannerGrid();
@@ -134,6 +138,21 @@ export class YearPlannerApp {
     this.eventEditorModal.addEventListener('event-cancel', () => {
       console.log('Event edit cancelled');
     });
+  }
+  
+  /**
+   * Create the user manual modal and add it to the DOM
+   */
+  createUserManualModal() {
+    // Ensure the UserManualModal custom element is defined
+    if (!customElements.get('user-manual-modal')) {
+      customElements.define('user-manual-modal', UserManualModal);
+      console.log('Registered UserManualModal custom element');
+    }
+    
+    this.userManualModal = document.createElement('user-manual-modal');
+    document.body.appendChild(this.userManualModal);
+    console.log('UserManualModal element created and appended to document body');
   }
 
   /**
@@ -272,6 +291,15 @@ export class YearPlannerApp {
         this.openEventEditor(null, today);
       });
     }
+    
+    // User manual button
+    const userManualBtn = document.getElementById('userManual');
+    
+    if (userManualBtn) {
+      userManualBtn.addEventListener('click', () => {
+        this.openUserManual();
+      });
+    }
 
     // Handle window resize events
     window.addEventListener('resize', this.handleResize.bind(this));
@@ -330,12 +358,10 @@ export class YearPlannerApp {
     actionButtons.style.alignItems = 'center';
 
     // User Manual button
-    const userManualBtn = document.createElement('a');
-    userManualBtn.href = '/user-manual.html';
-    userManualBtn.target = '_blank';
+    const userManualBtn = document.createElement('button');
+    userManualBtn.id = 'userManual';
     userManualBtn.textContent = 'User Manual';
     userManualBtn.style.padding = '5px 10px';
-    userManualBtn.style.textDecoration = 'none';
     userManualBtn.style.backgroundColor = '#f8f9fa';
     userManualBtn.style.color = '#212529';
     userManualBtn.style.borderRadius = '4px';
@@ -927,6 +953,18 @@ export class YearPlannerApp {
       
       // Wait for events to be rendered
       await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  /**
+   * Open the user manual modal
+   */
+  openUserManual() {
+    if (this.userManualModal) {
+      this.userManualModal.open();
+    } else {
+      console.error('User manual modal not initialized');
+      this.displayErrorMessage('Could not open user manual');
     }
   }
 
