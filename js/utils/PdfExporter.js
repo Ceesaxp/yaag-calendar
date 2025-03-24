@@ -15,12 +15,12 @@ export async function exportToPdf({ year, gridElement, legendElement }) {
   // Make sure the required libraries are loaded
   await loadRequiredLibraries();
   
-  // Create a new jsPDF instance (A4 landscape)
-  // A4 dimensions: 297mm x 210mm
+  // Create a new jsPDF instance (A3 landscape)
+  // A3 dimensions: 420mm x 297mm
   const pdf = new window.jspdf.jsPDF({
     orientation: 'landscape',
     unit: 'mm',
-    format: 'a4'
+    format: 'a3'
   });
   
   // Set up document properties
@@ -36,9 +36,19 @@ export async function exportToPdf({ year, gridElement, legendElement }) {
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';
     iframe.style.left = '-9999px';
-    iframe.style.width = '297mm'; // A4 landscape width
-    iframe.style.height = '210mm';
+    iframe.style.width = '420mm'; // A3 landscape width
+    iframe.style.height = '297mm'; // A3 landscape height
     document.body.appendChild(iframe);
+    
+    // Calculate available content space based on margins and header
+    const pageWidth = 420; // A3 width
+    const pageHeight = 297; // A3 height
+    const margin = 10; // 10mm margins as specified
+    const headerHeight = 15; // 15mm header as specified
+    
+    // Calculate the actual grid dimensions
+    const gridWidth = pageWidth - (margin * 2);
+    const gridHeight = pageHeight - (margin * 2) - headerHeight;
     
     // Wait for iframe to load
     await new Promise(resolve => {
@@ -54,69 +64,116 @@ export async function exportToPdf({ year, gridElement, legendElement }) {
         iframeDoc.write(link.outerHTML);
       });
       
-      // Add print-specific styles
+      // Add print-specific styles with the specified dimensions
       iframeDoc.write(`
         <style>
           body { 
             margin: 0; 
             padding: 0;
-            width: 297mm;
-            height: 210mm;
+            width: ${pageWidth}mm;
+            height: ${pageHeight}mm;
           }
           
           .print-container {
             width: 100%;
+            height: 100%;
             position: relative;
+            padding: ${margin}mm;
+            box-sizing: border-box;
+          }
+          
+          .year-planner-header {
+            height: ${headerHeight - 5}mm; /* Subtract some space for padding */
+            margin-bottom: 5mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12pt;
+            font-weight: bold;
+          }
+          
+          .year-planner-grid-container {
+            height: ${gridHeight}mm;
           }
           
           year-planner-grid {
             display: block !important;
             width: 100% !important;
+            height: 100% !important;
             max-width: none !important;
           }
           
-          .event {
+          /* Ensure proper grid dimensions */
+          .year-grid {
+            width: 100% !important;
+            height: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+          }
+          
+          /* Set day cell width to 10mm as specified */
+          .day-cell {
+            width: 10mm !important;
+            box-sizing: border-box !important;
+          }
+          
+          /* Set month row height to 20mm as specified */
+          .month-cell, .day-cell {
+            height: ${20}mm !important;
+            display: table-cell !important;
+            visibility: visible !important;
+            box-sizing: border-box !important;
+          }
+          
+          /* Ensure all events are visible with the 6pt font */
+          .event, .event-segment {
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
-          }
-          
-          .event-title {
-            font-size: 7px !important;
+            font-size: 6pt !important;
+            line-height: 1.2 !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
           }
           
+          /* Same for all text elements within events */
+          .event-title, .event-date-range, .event-indicators {
+            font-size: 6pt !important;
+            line-height: 1.2 !important;
+          }
+          
+          /* Minimize padding to maximize space */
           .month-cell {
             padding: 1px !important;
           }
           
-          table.year-grid {
-            width: 100% !important;
-            table-layout: fixed !important;
-            border-collapse: collapse !important;
-          }
-          
-          .day-cell, .month-cell {
-            display: table-cell !important;
-            visibility: visible !important;
-          }
-          
+          /* The actual header component */
           .pdf-header {
-            font-size: 8pt;
-            margin: 2mm 0;
+            font-size: 10pt;
+            font-weight: bold;
+          }
+          
+          /* Legend adjustments */
+          .event-legend {
+            margin-top: 5mm;
+            font-size: 7pt;
           }
         </style>
       `);
       
       iframeDoc.write('</head><body>');
       
-      // Add compact header
-      iframeDoc.write(`<div class="pdf-header">Year Planner ${year} - Exported: ${new Date().toLocaleDateString()}</div>`);
-      
-      // Create container
+      // Create container with header
       iframeDoc.write('<div class="print-container">');
+      
+      // Add header with year and date
+      iframeDoc.write(`
+        <div class="year-planner-header">
+          <div class="pdf-header">Year Planner ${year}</div>
+          <div>Exported: ${new Date().toLocaleDateString()}</div>
+        </div>
+      `);
       
       // If grid element has shadow DOM, try to extract its contents
       if (gridElement && gridElement.shadowRoot) {
@@ -131,12 +188,12 @@ export async function exportToPdf({ year, gridElement, legendElement }) {
       } else {
         // Just copy the grid element
         const gridHtml = gridElement.outerHTML;
-        iframeDoc.write(gridHtml);
+        iframeDoc.write(`<div class="year-planner-grid-container">${gridHtml}</div>`);
       }
       
       // Add the legend if provided
       if (legendElement) {
-        iframeDoc.write(legendElement.outerHTML);
+        iframeDoc.write(`<div class="event-legend">${legendElement.outerHTML}</div>`);
       }
       
       iframeDoc.write('</div>'); // Close print-container
@@ -145,70 +202,76 @@ export async function exportToPdf({ year, gridElement, legendElement }) {
     });
     
     // Wait a moment for any custom elements to render
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Increased timeout for better rendering
     
-    // Add compact header with year and export date
-    pdf.setFontSize(8);
-    pdf.text(`Year Planner ${year} - Exported: ${new Date().toLocaleDateString()}`, 5, 5);
-    
-    // Convert the grid to an image using html2canvas
-    const canvas = await window.html2canvas(tempContainer, {
+    // Convert the iframe content to an image using html2canvas
+    const canvas = await window.html2canvas(iframe.contentDocument.body, {
       scale: 2, // Higher scale for better quality
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      width: tempContainer.offsetWidth,
-      height: tempContainer.offsetHeight,
-      windowWidth: 1200, // Force a wider viewport
+      width: iframe.contentDocument.body.scrollWidth,
+      height: iframe.contentDocument.body.scrollHeight,
+      windowWidth: 1800, // Increased for A3 size
       onclone: (clonedDoc) => {
         // Additional modifications to the cloned document before rendering
         const clonedGrid = clonedDoc.querySelector('year-planner-grid');
         if (clonedGrid) {
           // Force grid to show all columns
-          const cells = clonedGrid.querySelectorAll('.day-cell, .month-cell');
+          const cells = clonedDoc.querySelectorAll('.day-cell, .month-cell');
           cells.forEach(cell => {
             cell.style.display = 'table-cell';
             cell.style.visibility = 'visible';
+            cell.style.width = cell.classList.contains('month-cell') ? 'auto' : '10mm';
+            cell.style.height = '20mm';
           });
           
-          // Make events visible
-          const events = clonedGrid.querySelectorAll('.event');
+          // Make all events visible with correct font size
+          const events = clonedDoc.querySelectorAll('.event, .event-segment');
           events.forEach(event => {
             event.style.display = 'block';
             event.style.visibility = 'visible';
             event.style.opacity = '1';
+            event.style.fontSize = '6pt';
+            event.style.lineHeight = '1.2';
+            
+            // Ensure event text is readable
+            const textElements = event.querySelectorAll('.event-title, .event-date-range, .event-indicators');
+            textElements.forEach(el => {
+              el.style.fontSize = '6pt';
+              el.style.lineHeight = '1.2';
+            });
           });
+          
+          // Ensure the year grid is properly sized
+          const yearGrid = clonedDoc.querySelector('.year-grid');
+          if (yearGrid) {
+            yearGrid.style.width = '100%';
+            yearGrid.style.tableLayout = 'fixed';
+            yearGrid.style.borderCollapse = 'collapse';
+          }
         }
       }
     });
     
-    // Remove the temporary container
-    document.body.removeChild(tempContainer);
+    // Remove the iframe
+    document.body.removeChild(iframe);
     
-    // Calculate dimensions to fit on A4 landscape
-    // Leave margins and space for header/footer
-    const pageWidth = 297;
-    const pageHeight = 210;
-    const margin = 5; // Smaller margins
-    const availableWidth = pageWidth - (margin * 2);
-    const availableHeight = pageHeight - (margin * 2) - 10; // Only 10mm for header/footer
-    
-    // Calculate scale to fit
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    const scale = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
-    
-    // Calculate centered position
-    const x = margin;
-    const y = margin + 10; // Position after header
-    
-    // Add the image to the PDF
+    // Add the image to the PDF - full page with margins
+    const pdfMargin = 10; // 10mm margins
     const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', x, y, availableWidth, imgHeight * (availableWidth / imgWidth));
+    pdf.addImage(
+      imgData, 
+      'PNG', 
+      pdfMargin, 
+      pdfMargin, 
+      pageWidth - (pdfMargin * 2), 
+      pageHeight - (pdfMargin * 2)
+    );
     
     // Add small footer
     pdf.setFontSize(6);
-    pdf.text('Year-At-A-Glance Calendar', 5, pageHeight - 3);
+    pdf.text('Year-At-A-Glance Calendar', pdfMargin + 2, pageHeight - 5);
     
     return pdf.output('blob');
   } catch (error) {
@@ -227,11 +290,12 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
   // Make sure the required libraries are loaded
   await loadRequiredLibraries();
   
-  // Create a new jsPDF instance (A4 landscape)
+  // Create a new jsPDF instance (A3 landscape)
+  // A3 dimensions: 420mm x 297mm
   const pdf = new window.jspdf.jsPDF({
     orientation: 'landscape',
     unit: 'mm',
-    format: 'a4'
+    format: 'a3'
   });
   
   // Set up document properties
@@ -243,12 +307,18 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
   });
   
   try {
+    // Set dimensions for A3 size
+    const pageWidth = 420; // A3 width
+    const pageHeight = 297; // A3 height
+    const margin = 10; // 10mm margins as specified
+    const headerHeight = 15; // 15mm header as specified
+    
     // Create a temporary iframe to render the page with print styles
     const iframe = document.createElement('iframe');
     iframe.style.position = 'absolute';
     iframe.style.left = '-9999px';
-    iframe.style.width = '297mm';
-    iframe.style.height = '210mm';
+    iframe.style.width = `${pageWidth}mm`;
+    iframe.style.height = `${pageHeight}mm`;
     document.body.appendChild(iframe);
     
     // Wait for iframe to load
@@ -265,56 +335,125 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
         iframeDoc.write(link.outerHTML);
       });
       
-      // Add print-specific styles
+      // Add print-specific styles with A3 dimensions and specified measurements
       iframeDoc.write(`
         <style>
           @media print {
             body { margin: 0; padding: 0; }
             #app-controls, header, footer, #notification, #debug-tools { display: none !important; }
-            .year-planner-grid { width: 100% !important; max-width: none !important; }
-            .month-cell { padding: 1px !important; }
-            .event-title { font-size: 7px !important; }
           }
-          body { width: 297mm; height: 210mm; }
-          @page { size: landscape; margin: 5mm; }
           
-          /* Force grid to be visible */
+          body { 
+            width: ${pageWidth}mm; 
+            height: ${pageHeight}mm; 
+            margin: 0; 
+            padding: 0;
+          }
+          
+          @page { 
+            size: landscape A3; 
+            margin: ${margin}mm; 
+          }
+          
+          .print-container {
+            width: 100%;
+            height: 100%;
+            padding: ${margin}mm;
+            box-sizing: border-box;
+          }
+          
+          .year-planner-header {
+            height: ${headerHeight - 5}mm;
+            margin-bottom: 5mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12pt;
+            font-weight: bold;
+          }
+          
+          /* Grid container with exact height */
+          #year-planner-container {
+            height: ${pageHeight - (2 * margin) - headerHeight}mm;
+            overflow: hidden;
+          }
+          
+          /* Force grid to be visible and properly sized */
           year-planner-grid {
             display: block !important;
             width: 100% !important;
+            height: 100% !important;
           }
           
-          /* Force all cells to be visible */
-          .day-cell, .month-cell {
+          /* Force all cells to be visible with specified dimensions */
+          .day-cell {
             display: table-cell !important;
             visibility: visible !important;
+            width: 10mm !important; /* 10mm column width as specified */
+            height: 20mm !important; /* 20mm row height as specified */
+            box-sizing: border-box !important;
           }
           
-          /* Force events to be visible */
-          .event {
+          .month-cell {
+            display: table-cell !important;
+            visibility: visible !important;
+            height: 20mm !important; /* 20mm row height as specified */
+            box-sizing: border-box !important;
+            padding: 1px !important;
+          }
+          
+          /* Force events to be visible with 6pt fonts */
+          .event, .event-segment {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            font-size: 6pt !important; /* 6pt fonts as specified */
+            line-height: 1.2 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          
+          /* Same for all text elements within events */
+          .event-title, .event-date-range, .event-indicators {
+            font-size: 6pt !important;
+            line-height: 1.2 !important;
           }
           
           /* Ensure grid is properly sized */
           table.year-grid {
             width: 100% !important;
+            height: 100% !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
+          }
+          
+          /* Header styling */
+          .pdf-header { 
+            font-size: 10pt; 
+            font-weight: bold;
+          }
+          
+          /* Legend styling */
+          .event-legend {
+            margin-top: 5mm;
+            font-size: 7pt;
           }
         </style>
       `);
       
-      // Add a small header
-      iframeDoc.write(`
-        <style>
-          .pdf-header { font-size: 8pt; margin: 2mm 0; }
-        </style>
-      `);
-      
       iframeDoc.write('</head><body class="print-mode">');
-      iframeDoc.write(`<div class="pdf-header">Year Planner ${year} - Exported: ${new Date().toLocaleDateString()}</div>`);
+      
+      // Create container with header
+      iframeDoc.write('<div class="print-container">');
+      
+      // Add header with year and date
+      iframeDoc.write(`
+        <div class="year-planner-header">
+          <div class="pdf-header">Year Planner ${year}</div>
+          <div>Exported: ${new Date().toLocaleDateString()}</div>
+        </div>
+      `);
       
       // Copy the year planner container with its contents
       const container = document.getElementById('year-planner-container');
@@ -341,23 +480,24 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
       // Copy the legend
       const legend = document.querySelector('.event-legend');
       if (legend) {
-        iframeDoc.write(legend.outerHTML);
+        iframeDoc.write(`<div class="event-legend">${legend ? legend.outerHTML : ''}</div>`);
       }
       
+      iframeDoc.write('</div>'); // Close print-container
       iframeDoc.write('</body></html>');
       iframeDoc.close();
     });
     
-    // Wait a moment for any custom elements to render
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait a moment for any custom elements to render - increased for better rendering
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Use html2canvas to capture the iframe content
     const canvas = await window.html2canvas(iframe.contentDocument.body, {
-      scale: 2,
+      scale: 2, // Higher scale for better quality
       useCORS: true,
-      logging: true, // Enable logging to debug rendering issues
+      logging: false, // Disable logging for production
       backgroundColor: '#ffffff',
-      windowWidth: 1200,
+      windowWidth: 1800, // Increased for A3 size
       allowTaint: true,
       foreignObjectRendering: true,
       onclone: (clonedDoc) => {
@@ -367,28 +507,51 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
           // Force grid to be visible
           grid.style.display = 'block';
           grid.style.width = '100%';
+          grid.style.height = '100%';
           
           // If grid has shadow DOM, try to access it
           if (grid.shadowRoot) {
-            const table = grid.shadowRoot.querySelector('table.year-grid');
+            const table = grid.shadowRoot.querySelector('.year-grid');
             if (table) {
               table.style.width = '100%';
+              table.style.height = '100%';
               table.style.tableLayout = 'fixed';
               table.style.borderCollapse = 'collapse';
               
-              // Make all cells visible
-              const cells = table.querySelectorAll('td, th');
-              cells.forEach(cell => {
+              // Make all cells visible with specified dimensions
+              const dayCells = table.querySelectorAll('.day-cell');
+              dayCells.forEach(cell => {
                 cell.style.display = 'table-cell';
                 cell.style.visibility = 'visible';
+                cell.style.width = '10mm'; // 10mm column width
+                cell.style.height = '20mm'; // 20mm row height
+                cell.style.boxSizing = 'border-box';
               });
               
-              // Make all events visible
-              const events = table.querySelectorAll('.event');
+              const monthCells = table.querySelectorAll('.month-cell');
+              monthCells.forEach(cell => {
+                cell.style.display = 'table-cell';
+                cell.style.visibility = 'visible';
+                cell.style.height = '20mm'; // 20mm row height
+                cell.style.boxSizing = 'border-box';
+                cell.style.padding = '1px';
+              });
+              
+              // Make all events visible with 6pt fonts
+              const events = table.querySelectorAll('.event, .event-segment');
               events.forEach(event => {
                 event.style.display = 'block';
                 event.style.visibility = 'visible';
                 event.style.opacity = '1';
+                event.style.fontSize = '6pt'; // 6pt font
+                event.style.lineHeight = '1.2';
+                
+                // Ensure event text elements use 6pt fonts
+                const textElements = event.querySelectorAll('.event-title, .event-date-range, .event-indicators');
+                textElements.forEach(el => {
+                  el.style.fontSize = '6pt';
+                  el.style.lineHeight = '1.2';
+                });
               });
             }
           }
@@ -399,9 +562,20 @@ export async function exportToPdfUsingPrintStylesheet({ year }) {
     // Remove the iframe
     document.body.removeChild(iframe);
     
-    // Add the image to the PDF
+    // Add the image to the PDF - full page with margins
     const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 5, 5, 287, 200);
+    pdf.addImage(
+      imgData, 
+      'PNG', 
+      margin, 
+      margin, 
+      pageWidth - (margin * 2), 
+      pageHeight - (margin * 2)
+    );
+    
+    // Add small footer
+    pdf.setFontSize(6);
+    pdf.text('Year-At-A-Glance Calendar', margin + 2, pageHeight - 5);
     
     return pdf.output('blob');
   } catch (error) {
