@@ -12,8 +12,16 @@ import { EventPositionCalculator } from './services/EventPositionCalculator.js';
 import { Event, YearPlanner } from './domain/models.js';
 import EventEditorModal from './components/EventEditorModal.js';
 import { YearPlannerGrid } from './components/YearPlannerGrid.js';
-import { normalizeDateToUTC, createDateOnly, compareDates, getDaysBetween } from './utils/DateUtils.js';
-import { exportToPdf, exportToPdfUsingPrintStylesheet } from './utils/PdfExporter.js';
+import {
+  normalizeDateToUTC,
+  createDateOnly,
+  compareDates,
+  getDaysBetween,
+} from './utils/DateUtils.js';
+import {
+  exportToPdf,
+  exportToPdfUsingPrintStylesheet,
+} from './utils/PdfExporter.js';
 import UserManualModal from './components/UserManualModal.js';
 
 // Log imports to help with debugging
@@ -46,7 +54,7 @@ export class YearPlannerApp {
   async initialize() {
     try {
       console.log('Initializing Year Planner application...');
-      
+
       // Initialize dependencies
       this.storageAdapter = new StorageAdapter();
       this.eventPositionCalculator = new EventPositionCalculator();
@@ -54,19 +62,19 @@ export class YearPlannerApp {
 
       // Create notification area if it doesn't exist
       this.createNotificationArea();
-      
+
       // Create application controls if they don't exist in the HTML
       this.createApplicationControls();
-      
+
       // Set up event listeners for controls
       this.setupEventListeners();
-      
+
       // Populate the year dropdown
       this.populateYearDropdown();
-      
+
       // Create and append the event editor modal to the DOM
       this.createEventEditorModal();
-      
+
       // Create and append the user manual modal to the DOM
       this.createUserManualModal();
 
@@ -85,22 +93,22 @@ export class YearPlannerApp {
       );
     }
   }
-  
+
   /**
    * Populate the year dropdown with a range of years
    */
   populateYearDropdown() {
     const yearSelect = document.getElementById('currentYear');
     if (!yearSelect) return;
-    
+
     // Clear existing options
     yearSelect.innerHTML = '';
-    
+
     // Add options for a reasonable range of years
     const currentYear = new Date().getFullYear();
     const startYear = currentYear - 10;
     const endYear = currentYear + 10;
-    
+
     for (let year = startYear; year <= endYear; year++) {
       const option = document.createElement('option');
       option.value = year;
@@ -121,10 +129,12 @@ export class YearPlannerApp {
       customElements.define('event-editor-modal', EventEditorModal);
       console.log('Registered EventEditorModal custom element');
     }
-    
+
     this.eventEditorModal = document.createElement('event-editor-modal');
     document.body.appendChild(this.eventEditorModal);
-    console.log('EventEditorModal element created and appended to document body');
+    console.log(
+      'EventEditorModal element created and appended to document body',
+    );
 
     // Set up event listeners for the modal
     this.eventEditorModal.addEventListener('event-save', (e) => {
@@ -139,7 +149,7 @@ export class YearPlannerApp {
       console.log('Event edit cancelled');
     });
   }
-  
+
   /**
    * Create the user manual modal and add it to the DOM
    */
@@ -149,10 +159,12 @@ export class YearPlannerApp {
       customElements.define('user-manual-modal', UserManualModal);
       console.log('Registered UserManualModal custom element');
     }
-    
+
     this.userManualModal = document.createElement('user-manual-modal');
     document.body.appendChild(this.userManualModal);
-    console.log('UserManualModal element created and appended to document body');
+    console.log(
+      'UserManualModal element created and appended to document body',
+    );
   }
 
   /**
@@ -183,11 +195,11 @@ export class YearPlannerApp {
     }
 
     this.yearPlannerGrid = document.createElement('year-planner-grid');
-    
+
     // Set explicit configuration for the grid
     this.yearPlannerGrid.setAttribute('show-year-in-header', 'true');
     this.yearPlannerGrid.setAttribute('first-column-width', 'narrow');
-    
+
     container.appendChild(this.yearPlannerGrid);
     console.log('YearPlannerGrid element created and appended to container');
 
@@ -291,10 +303,10 @@ export class YearPlannerApp {
         this.openEventEditor(null, today);
       });
     }
-    
+
     // User manual button
     const userManualBtn = document.getElementById('userManual');
-    
+
     if (userManualBtn) {
       userManualBtn.addEventListener('click', () => {
         this.openUserManual();
@@ -406,7 +418,7 @@ export class YearPlannerApp {
     importBtn.style.borderRadius = '4px';
     importBtn.style.border = '1px solid #ced4da';
     importBtn.style.cursor = 'pointer';
-    
+
     const exportPdfBtn = document.createElement('button');
     exportPdfBtn.id = 'exportPdf';
     exportPdfBtn.textContent = 'Export to PDF';
@@ -443,7 +455,7 @@ export class YearPlannerApp {
     actionButtons.appendChild(separator1);
     actionButtons.appendChild(newEventBtn);
     actionButtons.appendChild(importExportGroup);
-    
+
     // Add buttons to import/export group
     importExportGroup.appendChild(exportBtn);
     importExportGroup.appendChild(importBtn);
@@ -457,7 +469,8 @@ export class YearPlannerApp {
     controlsContainer.appendChild(actionButtons);
 
     // Add to DOM before the year planner container
-    const container = document.getElementById('year-planner-container') || document.body;
+    const container =
+      document.getElementById('year-planner-container') || document.body;
     container.parentNode.insertBefore(controlsContainer, container);
   }
 
@@ -468,53 +481,59 @@ export class YearPlannerApp {
    */
   async loadYear(year) {
     if (this.loading) return;
-    
+
     this.loading = true;
     try {
       this.currentYear = year;
-      
+
       // Update the year dropdown to reflect the current year
       const yearSelect = document.getElementById('currentYear');
       if (yearSelect) {
         // Check if the year exists in the dropdown
-        let yearOption = Array.from(yearSelect.options).find(option => parseInt(option.value) === year);
-        
+        let yearOption = Array.from(yearSelect.options).find(
+          (option) => parseInt(option.value) === year,
+        );
+
         // If the year doesn't exist in the dropdown, add it
         if (!yearOption) {
           yearOption = document.createElement('option');
           yearOption.value = year;
           yearOption.textContent = year;
           yearSelect.appendChild(yearOption);
-          
+
           // Sort the options
           const options = Array.from(yearSelect.options);
           options.sort((a, b) => parseInt(a.value) - parseInt(b.value));
           yearSelect.innerHTML = '';
-          options.forEach(option => yearSelect.appendChild(option));
+          options.forEach((option) => yearSelect.appendChild(option));
         }
-        
+
         // Set the selected value
         yearSelect.value = year;
       }
-      
+
       // Set the year as a data attribute on body for print stylesheet
       document.body.dataset.year = year;
 
       // Update recurrence calculator for new year
       this.recurrenceCalculator = new RecurrenceCalculator(year);
-      
+
       // Create a new YearPlanner for this year
       this.yearPlanner = new YearPlanner({ year });
 
       // Load saved events from storage
       const savedEvents = await this.storageAdapter.loadEvents(year);
-      console.log('App: Loaded events from storage', savedEvents ? savedEvents.length : 0, savedEvents);
-      
+      console.log(
+        'App: Loaded events from storage',
+        savedEvents ? savedEvents.length : 0,
+        savedEvents,
+      );
+
       // Add events to the year planner
       if (savedEvents && savedEvents.length > 0) {
         try {
           // Convert plain objects to Event instances
-          const eventInstances = savedEvents.map(eventData => {
+          const eventInstances = savedEvents.map((eventData) => {
             return new Event({
               id: eventData.id,
               title: eventData.title,
@@ -525,12 +544,12 @@ export class YearPlannerApp {
               recurrencePattern: eventData.recurrencePattern,
               startsPM: eventData.startsPM,
               endsAM: eventData.endsAM,
-              isPublicHoliday: eventData.isPublicHoliday
+              isPublicHoliday: eventData.isPublicHoliday,
             });
           });
 
           // Add events to the year planner
-          eventInstances.forEach(event => {
+          eventInstances.forEach((event) => {
             try {
               this.yearPlanner.addEvent(event);
             } catch (error) {
@@ -541,28 +560,34 @@ export class YearPlannerApp {
           console.error('Error processing saved events:', error);
         }
       }
-      
+
       // Process recurring events
       const expandedEvents = this.recurrenceCalculator.expandRecurringEvents(
-        this.yearPlanner.events
+        this.yearPlanner.events,
       );
-      
+
       // Calculate positions for the events
       const positionedEvents = this.eventPositionCalculator.calculatePositions(
         expandedEvents,
-        year
+        year,
       );
-      
-      console.log('App: Calculated event positions', positionedEvents.length, positionedEvents);
-      
+
+      console.log(
+        'App: Calculated event positions',
+        positionedEvents.length,
+        positionedEvents,
+      );
+
       // Update the year planner grid
       this.yearPlannerGrid.year = year;
       this.yearPlannerGrid.events = positionedEvents;
-      
+
       console.log(`Loaded ${positionedEvents.length} events for year ${year}`);
     } catch (error) {
       console.error(`Failed to load year ${year}:`, error);
-      this.displayErrorMessage(`Failed to load events for year ${year}: ${error.message}`);
+      this.displayErrorMessage(
+        `Failed to load events for year ${year}: ${error.message}`,
+      );
     } finally {
       this.loading = false;
     }
@@ -590,20 +615,20 @@ export class YearPlannerApp {
    */
   handleEventClick(eventId) {
     // Find the event in the expanded events list
-    const event = this.yearPlannerGrid.events.find(e => e.id === eventId);
-    
+    const event = this.yearPlannerGrid.events.find((e) => e.id === eventId);
+
     if (event) {
       // For recurrence instances, find the original event
       if (event.isRecurrenceInstance && event.originalEventId) {
         const originalEvent = this.yearPlanner.events.find(
-          e => e.id === event.originalEventId
+          (e) => e.id === event.originalEventId,
         );
         if (originalEvent) {
           this.openEventEditor(originalEvent);
           return;
         }
       }
-      
+
       // Otherwise, open the event directly
       this.openEventEditor(event);
     } else {
@@ -624,18 +649,18 @@ export class YearPlannerApp {
       if (defaultDate.getFullYear() !== this.currentYear) {
         defaultDate = createDateOnly(this.currentYear, 0, 1);
       }
-      
+
       // If creating a new event
       if (!event) {
         this.eventEditorModal.open(null, defaultDate);
       } else {
         // Clone the event to avoid modifying the original directly
         const eventCopy = { ...event };
-        
+
         // Ensure dates are proper Date objects and normalized to midnight UTC
         eventCopy.startDate = normalizeDateToUTC(eventCopy.startDate);
         eventCopy.endDate = normalizeDateToUTC(eventCopy.endDate);
-        
+
         this.eventEditorModal.open(eventCopy);
       }
     } catch (error) {
@@ -651,20 +676,20 @@ export class YearPlannerApp {
   async handleEventSave(eventData) {
     try {
       const isNewEvent = !this.yearPlanner.getEvent(eventData.id);
-      
+
       // Validate event dates
       if (!eventData.startDate || !eventData.endDate) {
         throw new Error('Start and end dates are required');
       }
-      
+
       // Normalize dates to midnight UTC
       let startDate = normalizeDateToUTC(eventData.startDate);
       let endDate = normalizeDateToUTC(eventData.endDate);
-      
+
       // Log dates for debugging
       console.log('Start date before validation:', startDate);
       console.log('End date before validation:', endDate);
-      
+
       // Ensure end date is not before start date
       if (endDate < startDate) {
         // If end date is before start date, swap them
@@ -673,15 +698,15 @@ export class YearPlannerApp {
         endDate = startDate;
         startDate = temp;
       }
-      
+
       // Validate event dates are within the current year
       const startYear = startDate.getFullYear();
       const endYear = endDate.getFullYear();
-      
+
       if (startYear !== this.currentYear || endYear !== this.currentYear) {
         throw new Error('Event dates must be within the current year.');
       }
-      
+
       // Create a proper Event instance
       const event = new Event({
         id: eventData.id,
@@ -693,24 +718,26 @@ export class YearPlannerApp {
         recurrencePattern: eventData.recurrencePattern,
         startsPM: eventData.startsPM || false,
         endsAM: eventData.endsAM || false,
-        isPublicHoliday: eventData.isPublicHoliday || false
+        isPublicHoliday: eventData.isPublicHoliday || false,
       });
-      
+
       // Add or update the event in the year planner
       if (isNewEvent) {
         this.yearPlanner.addEvent(event);
       } else {
         this.yearPlanner.updateEvent(eventData.id, event);
       }
-      
+
       // Save to storage
       await this.storageAdapter.saveEvent(event);
-      
+
       // Reload the year to reflect changes
       await this.loadYear(this.currentYear);
-      
+
       this.displaySuccessMessage(
-        isNewEvent ? 'Event created successfully' : 'Event updated successfully'
+        isNewEvent
+          ? 'Event created successfully'
+          : 'Event updated successfully',
       );
     } catch (error) {
       console.error('Error saving event:', error);
@@ -724,27 +751,54 @@ export class YearPlannerApp {
    */
   async handleEventDelete(eventId) {
     try {
+      console.log(`Attempting to delete event: ${eventId}`);
+
       // First check if this is an expanded recurrence instance
-      const event = this.yearPlannerGrid.events.find(e => e.id === eventId);
-      
+      const event = this.yearPlannerGrid.events.find((e) => e.id === eventId);
+      let originalEventId = eventId;
+
       if (event && event.isRecurrenceInstance && event.originalEventId) {
-        // If it's a recurrence instance, delete the original recurring event
-        eventId = event.originalEventId;
+        // If it's a recurrence instance, use the original event ID
+        console.log(
+          `Found recurrence instance, original ID: ${event.originalEventId}`,
+        );
+        originalEventId = event.originalEventId;
       }
-      
+
+      // Check if the original event actually exists in the year planner
+      const originalEventExists = this.yearPlanner.events.some(
+        (e) => e.id === originalEventId,
+      );
+
+      if (!originalEventExists) {
+        console.warn(
+          `Original event ${originalEventId} not found in year planner`,
+        );
+        // Try fallback to ID without date suffix
+        const baseId = originalEventId.split('_').slice(0, -1).join('_');
+        console.log(`Trying base ID: ${baseId}`);
+
+        if (this.yearPlanner.events.some((e) => e.id === baseId)) {
+          originalEventId = baseId;
+        }
+      }
+
       // Remove from the year planner
-      const removed = this.yearPlanner.removeEvent(eventId);
-      
+      const removed = this.yearPlanner.removeEvent(originalEventId);
+
       if (!removed) {
-        console.warn(`Event ${eventId} not found in year planner`);
+        console.warn(`Event ${originalEventId} not found in year planner`);
       }
-      
+
       // Delete from storage
-      await this.storageAdapter.deleteEvent(eventId);
-      
+      await this.storageAdapter.deleteEvent(originalEventId);
+
+      // Clear the recurrence calculator cache
+      this.recurrenceCalculator.clearCache();
+
       // Reload the year to reflect changes
       await this.loadYear(this.currentYear);
-      
+
       this.displaySuccessMessage('Event deleted successfully');
     } catch (error) {
       console.error('Error deleting event:', error);
@@ -758,11 +812,15 @@ export class YearPlannerApp {
   async handleResetCalendar() {
     try {
       // Show confirmation dialog
-      const confirmed = confirm('Are you sure you want to reset the calendar? This will delete all events.');
+      const confirmed = confirm(
+        'Are you sure you want to reset the calendar? This will delete all events.',
+      );
       if (!confirmed) return;
 
       // Show second confirmation dialog
-      const secondConfirmation = prompt('This action cannot be undone. Type "Yes, I understand" to confirm.');
+      const secondConfirmation = prompt(
+        'This action cannot be undone. Type "Yes, I understand" to confirm.',
+      );
       if (secondConfirmation !== 'Yes, I understand') return;
 
       // Clear all data
@@ -784,11 +842,11 @@ export class YearPlannerApp {
   async exportData() {
     try {
       const jsonData = await this.storageAdapter.exportData(this.currentYear);
-      
+
       // Create a download link for the JSON data
       const blob = new Blob([jsonData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `year-planner-${this.currentYear}.json`;
@@ -796,7 +854,7 @@ export class YearPlannerApp {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       this.displaySuccessMessage('Data exported successfully');
     } catch (error) {
       console.error('Error exporting data:', error);
@@ -823,16 +881,16 @@ export class YearPlannerApp {
   async handleImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     try {
       const jsonData = await this.readFileAsText(file);
-      
+
       // Import the data
       await this.storageAdapter.importData(jsonData);
-      
+
       // Reload the current year to reflect changes
       await this.loadYear(this.currentYear);
-      
+
       this.displaySuccessMessage('Data imported successfully');
     } catch (error) {
       console.error('Error importing data:', error);
@@ -851,30 +909,30 @@ export class YearPlannerApp {
   readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = () => resolve(reader.result);
       reader.onerror = () => reject(new Error('Failed to read file'));
-      
+
       reader.readAsText(file);
     });
   }
-  
+
   /**
    * Export the current year planner to PDF
    */
   async exportToPdf() {
     try {
       this.displayNotification('Preparing PDF export...', 'info');
-      
+
       // Ensure all events are rendered before exporting
       await this.refreshGrid();
-      
+
       // Try the print stylesheet method first
       try {
         const pdfBlob = await exportToPdfUsingPrintStylesheet({
-          year: this.currentYear
+          year: this.currentYear,
         });
-        
+
         // Create a download link for the PDF
         const url = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
@@ -884,29 +942,32 @@ export class YearPlannerApp {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         this.displaySuccessMessage('PDF exported successfully');
         return;
       } catch (printError) {
-        console.warn('Print stylesheet method failed, falling back to direct rendering:', printError);
+        console.warn(
+          'Print stylesheet method failed, falling back to direct rendering:',
+          printError,
+        );
       }
-      
+
       // Fallback to direct rendering method
       // Get the grid element and legend element
       const gridElement = this.yearPlannerGrid;
       const legendElement = document.querySelector('.event-legend');
-      
+
       if (!gridElement) {
         throw new Error('Year planner grid not found');
       }
-      
+
       // Generate the PDF
       const pdfBlob = await exportToPdf({
         year: this.currentYear,
         gridElement,
-        legendElement
+        legendElement,
       });
-      
+
       // Create a download link for the PDF
       const url = URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
@@ -916,7 +977,7 @@ export class YearPlannerApp {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       this.displaySuccessMessage('PDF exported successfully');
     } catch (error) {
       console.error('Error exporting to PDF:', error);
@@ -933,7 +994,7 @@ export class YearPlannerApp {
       this.refreshGrid();
     }
   }
-  
+
   /**
    * Refresh the grid to ensure all events are properly rendered
    * @returns {Promise<void>}
@@ -943,19 +1004,19 @@ export class YearPlannerApp {
       // Force grid to recalculate layout
       const currentEvents = this.yearPlannerGrid.events;
       const currentYear = this.yearPlannerGrid.year;
-      
+
       this.yearPlannerGrid.events = [];
-      
+
       // Wait a moment for the DOM to update
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       this.yearPlannerGrid.events = currentEvents;
-      
+
       // Wait for events to be rendered
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
-  
+
   /**
    * Open the user manual modal
    */
@@ -992,16 +1053,16 @@ export class YearPlannerApp {
   displayNotification(message, type = 'info') {
     const notification = document.getElementById('notification');
     if (!notification) return;
-    
+
     // Clear any existing timeout
     if (this.notificationTimeout) {
       clearTimeout(this.notificationTimeout);
     }
-    
+
     // Set notification content and style
     notification.textContent = message;
     notification.style.display = 'block';
-    
+
     if (type === 'error') {
       notification.style.backgroundColor = '#f44336';
       notification.style.color = 'white';
@@ -1012,11 +1073,14 @@ export class YearPlannerApp {
       notification.style.backgroundColor = '#2196F3';
       notification.style.color = 'white';
     }
-    
+
     // Auto-hide after delay
-    this.notificationTimeout = setTimeout(() => {
-      notification.style.display = 'none';
-    }, type === 'error' ? 5000 : 3000);
+    this.notificationTimeout = setTimeout(
+      () => {
+        notification.style.display = 'none';
+      },
+      type === 'error' ? 5000 : 3000,
+    );
   }
 }
 
@@ -1027,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check for debug parameter in URL
   const urlParams = new URLSearchParams(window.location.search);
   const debugEnabled = urlParams.get('debugEnabled') === 'true';
-  
+
   // Set up debug mode based on URL parameter
   if (!debugEnabled) {
     // Hide debug tools if not enabled
@@ -1035,12 +1099,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (debugTools) {
       debugTools.style.display = 'none';
     }
-    
+
     // Override console.log to suppress debug messages
     const originalConsoleLog = console.log;
-    console.log = function(...args) {
+    console.log = function (...args) {
       // Allow error and warn to pass through
-      if (typeof args[0] === 'string' && args[0].includes('Error') || args[0].includes('Failed')) {
+      if (
+        (typeof args[0] === 'string' && args[0].includes('Error')) ||
+        args[0].includes('Failed')
+      ) {
         originalConsoleLog.apply(console, args);
       }
       // Otherwise suppress debug logs
@@ -1048,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const app = new YearPlannerApp();
-  app.initialize().catch(error => {
+  app.initialize().catch((error) => {
     console.error('Failed to initialize application:', error);
     alert('Failed to initialize application. Please refresh and try again.');
   });
