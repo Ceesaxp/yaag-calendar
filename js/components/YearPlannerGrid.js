@@ -318,6 +318,9 @@ export class YearPlannerGrid extends HTMLElement {
           display: flex;
           gap: 2px;
           font-size: 0.7em;
+          position: absolute;
+          right: 2px;
+          top: 1px;
         }
 
         .event-icon {
@@ -325,6 +328,7 @@ export class YearPlannerGrid extends HTMLElement {
           margin-right: 2px;
           font-size: 0.85em;
           cursor: help;
+          opacity: 0.9;
         }
 
         .recurring-icon {
@@ -904,7 +908,7 @@ export class YearPlannerGrid extends HTMLElement {
 
     // Add title and information
     if (segment.isFirstSegment) {
-      // First segment shows full title and indicators
+      // First segment shows full title
       segmentEl.textContent = layoutEvent.title;
 
       // Add indicators
@@ -934,15 +938,52 @@ export class YearPlannerGrid extends HTMLElement {
         segmentEl.appendChild(dateRangeSpan);
       }
     } else if (!segment.isFirstSegment && !segment.isLastSegment) {
-      // Middle segments show brief identifier
+      // Middle segments show brief identifier with continuation symbol
       const briefTitle =
         layoutEvent.title.length > 12
           ? layoutEvent.title.substring(0, 10) + '...'
           : layoutEvent.title;
       segmentEl.textContent = '⟼ ' + briefTitle;
+      
+      // Add minimal indicators for middle segments
+      if (layoutEvent.isRecurring || layoutEvent.startsPM || layoutEvent.endsAM) {
+        const miniIndicator = document.createElement('span');
+        miniIndicator.className = 'event-indicators mini';
+        miniIndicator.style.fontSize = '0.6em';
+        miniIndicator.style.opacity = '0.7';
+        miniIndicator.style.position = 'absolute';
+        miniIndicator.style.right = '2px';
+        miniIndicator.style.top = '1px';
+        
+        if (layoutEvent.isRecurring) {
+          const icon = document.createElement('span');
+          icon.className = 'event-icon recurring-icon';
+          icon.title = 'Recurring event';
+          icon.textContent = '↻';
+          miniIndicator.appendChild(icon);
+        }
+        
+        segmentEl.appendChild(miniIndicator);
+      }
     } else if (segment.isLastSegment) {
       // End segments show arrow and title
       segmentEl.textContent = '⟹ ' + layoutEvent.title;
+
+      // Add indicators for last segment
+      let indicators = '';
+      if (layoutEvent.isRecurring)
+        indicators +=
+          '<span class="event-icon recurring-icon" title="Recurring event">↻</span>';
+      if (layoutEvent.endsAM)
+        indicators +=
+          '<span class="event-icon ends-am-icon" title="Ends in morning">◐</span>';
+
+      if (indicators) {
+        const indicatorsSpan = document.createElement('span');
+        indicatorsSpan.className = 'event-indicators';
+        indicatorsSpan.innerHTML = indicators;
+        segmentEl.appendChild(indicatorsSpan);
+      }
 
       // Add end date for multi-day events
       if (layoutEvent.formattedDateRange) {
