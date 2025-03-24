@@ -346,7 +346,7 @@ export class YearPlannerApp {
 
     const prevYearBtn = document.createElement('button');
     prevYearBtn.id = 'prevYear';
-    prevYearBtn.textContent = '◀ Previous Year';
+    prevYearBtn.textContent = '◀ Previous';
     prevYearBtn.style.padding = '5px 10px';
 
     const yearSelect = document.createElement('select');
@@ -356,7 +356,7 @@ export class YearPlannerApp {
 
     const nextYearBtn = document.createElement('button');
     nextYearBtn.id = 'nextYear';
-    nextYearBtn.textContent = 'Next Year ▶';
+    nextYearBtn.textContent = 'Next ▶';
     nextYearBtn.style.padding = '5px 10px';
 
     yearNav.appendChild(prevYearBtn);
@@ -372,7 +372,7 @@ export class YearPlannerApp {
     // User Manual button
     const userManualBtn = document.createElement('button');
     userManualBtn.id = 'userManual';
-    userManualBtn.textContent = 'User Manual';
+    userManualBtn.textContent = 'Help';
     userManualBtn.style.padding = '5px 10px';
     userManualBtn.style.backgroundColor = '#f8f9fa';
     userManualBtn.style.color = '#212529';

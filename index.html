@@ -1,171 +1,220 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>Year-At-A-Glance Calendar</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <link rel="stylesheet" href="css/print.css">
-</head>
-<body>
-  <header>
-    <div class="app-header">
-      <h1>Year-At-A-Glance Calendar</h1>
-      <p class="app-description">A high-level visual planning tool for annual events and commitments</p>
-    </div>
-    <!-- Removed navigation from header -->
-  </header>
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <title>Year-At-A-Glance Calendar</title>
+        <link rel="stylesheet" href="css/styles.css" />
+        <link rel="stylesheet" href="css/print.css" />
+    </head>
+    <body>
+        <header>
+            <div class="app-header">
+                <h1>Year-At-A-Glance Calendar</h1>
+                <p class="app-description">
+                    A high-level visual planning tool for annual events and
+                    commitments
+                </p>
+            </div>
+            <!-- Removed navigation from header -->
+        </header>
 
-  <main>
-    <div id="app-controls">
-      <div id="year-navigation" class="year-navigation">
-        <button id="prevYear" class="btn btn-nav">◀ Previous Year</button>
-        <select id="currentYear" class="year-select"></select>
-        <button id="nextYear" class="btn btn-nav">Next Year ▶</button>
-      </div>
+        <main>
+            <div id="app-controls">
+                <div id="year-navigation" class="year-navigation">
+                    <button id="prevYear" class="btn btn-nav">
+                        ◀ Previous
+                    </button>
+                    <select id="currentYear" class="year-select"></select>
+                    <button id="nextYear" class="btn btn-nav">Next ▶</button>
+                </div>
 
-      <div class="action-buttons">
-        <button id="userManual" class="btn btn-manual">User Manual</button>
-        <div class="control-separator"></div>
-        <button id="newEvent" class="btn btn-primary">+ New Event</button>
-        <div class="import-export-group">
-          <button id="exportData" class="btn">Export Data</button>
-          <button id="importData" class="btn">Import Data</button>
-          <button id="exportPdf" class="btn">Export to PDF</button>
-          <div class="control-separator"></div>
-          <button id="resetCalendar" class="btn btn-danger">Reset</button>
-          <input type="file" id="importFile" accept=".json" style="display: none;">
+                <div class="action-buttons">
+                    <button id="userManual" class="btn btn-manual">Help</button>
+                    <div class="control-separator"></div>
+                    <button id="newEvent" class="btn btn-primary">
+                        + New Event
+                    </button>
+                    <div class="import-export-group">
+                        <button id="exportData" class="btn">Export Data</button>
+                        <button id="importData" class="btn">Import Data</button>
+                        <button id="exportPdf" class="btn">
+                            Export to PDF
+                        </button>
+                        <div class="control-separator"></div>
+                        <button id="resetCalendar" class="btn btn-danger">
+                            Reset
+                        </button>
+                        <input
+                            type="file"
+                            id="importFile"
+                            accept=".json"
+                            style="display: none;"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div class="event-legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-regular"></div>
+                    <span>Regular Event</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-holiday"></div>
+                    <span>Public Holiday</span>
+                </div>
+                <div class="legend-item">
+                    <span title="Recurring event">↻ - Recurring</span>
+                </div>
+                <div class="legend-item">
+                    <span title="Event starts in the afternoon"
+                        >◑ - Starts PM</span
+                    >
+                </div>
+                <div class="legend-item">
+                    <span title="Event ends in the morning">◐ - Ends AM</span>
+                </div>
+            </div>
+
+            <div id="year-planner-container" class="planner-container">
+                <!-- Year planner grid will be inserted here by JavaScript -->
+            </div>
+
+            <div id="notification" class="notification"></div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 YAAG Calendar</p>
+        </footer>
+
+        <!-- Debug Tools -->
+        <div
+            id="debug-tools"
+            style="margin: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f8f8f8;"
+        >
+            <h3>Debug Tools</h3>
+            <button id="debug-create-event">Create Test Event</button>
+            <button id="debug-clear-storage">Clear All Events</button>
+            <button id="debug-show-storage">Show localStorage</button>
+            <div
+                id="debug-output"
+                style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; background-color: white; max-height: 200px; overflow: auto;"
+            ></div>
         </div>
-      </div>
-    </div>
 
-    <div class="event-legend">
-      <div class="legend-item">
-        <div class="legend-color legend-regular"></div>
-        <span>Regular Event</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color legend-holiday"></div>
-        <span>Public Holiday</span>
-      </div>
-      <div class="legend-item">
-        <span title="Recurring event">↻ - Recurring</span>
-      </div>
-      <div class="legend-item">
-        <span title="Event starts in the afternoon">◑ - Starts PM</span>
-      </div>
-      <div class="legend-item">
-        <span title="Event ends in the morning">◐ - Ends AM</span>
-      </div>
-    </div>
+        <script>
+            // Wait for app to initialize
+            setTimeout(() => {
+                // Debug function to create a test event
+                function createTestEvent() {
+                    // Create dates with normalized time components
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Set to midnight
 
-    <div id="year-planner-container" class="planner-container">
-      <!-- Year planner grid will be inserted here by JavaScript -->
-    </div>
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1);
+                    tomorrow.setHours(23, 59, 59, 999); // Set to end of day
 
-    <div id="notification" class="notification"></div>
-  </main>
+                    const testEvent = {
+                        id: 'test-event-' + Date.now(),
+                        title: 'Test Event ' + new Date().toLocaleTimeString(),
+                        description:
+                            'This is a test event created for debugging',
+                        startDate: today,
+                        endDate: tomorrow,
+                        // Add a property to help identify test events visually
+                        isTestEvent: true,
+                    };
 
-  <footer>
-    <p>&copy; 2025 YAAG Calendar</p>
-  </footer>
+                    // Access the app instance from the global variable
+                    const app = window.yearPlannerApp;
 
-  <!-- Debug Tools -->
-  <div id="debug-tools" style="margin: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f8f8f8;">
-    <h3>Debug Tools</h3>
-    <button id="debug-create-event">Create Test Event</button>
-    <button id="debug-clear-storage">Clear All Events</button>
-    <button id="debug-show-storage">Show localStorage</button>
-    <div id="debug-output" style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; background-color: white; max-height: 200px; overflow: auto;"></div>
-  </div>
-  
-  <script>
-    // Wait for app to initialize
-    setTimeout(() => {
-      // Debug function to create a test event
-      function createTestEvent() {
-        // Create dates with normalized time components
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to midnight
-        
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        tomorrow.setHours(23, 59, 59, 999); // Set to end of day
-        
-        const testEvent = {
-          id: 'test-event-' + Date.now(),
-          title: 'Test Event ' + new Date().toLocaleTimeString(),
-          description: 'This is a test event created for debugging',
-          startDate: today,
-          endDate: tomorrow,
-          // Add a property to help identify test events visually
-          isTestEvent: true
-        };
-        
-        // Access the app instance from the global variable
-        const app = window.yearPlannerApp;
-        
-        // Log event details
-        console.log('Creating test event:', testEvent);
-        document.getElementById('debug-output').innerHTML = 'Creating test event: ' + JSON.stringify(testEvent, null, 2);
-        
-        // Save the event using the app
-        app.handleEventSave(testEvent).then(() => {
-          console.log('Test event saved successfully');
-          document.getElementById('debug-output').innerHTML += '<br><br>Test event saved successfully';
-          
-          // Print localStorage content for yearPlanner_events
-          const yearKey = app.storageAdapter.getYearKey(today.getFullYear());
-          console.log('Storage content:', localStorage.getItem(yearKey));
-          
-          // Check if the event appears in the app events list
-          console.log('App events:', app.yearPlanner.events);
-          
-          // Check if the event appears in the grid events list
-          console.log('Grid events:', app.yearPlannerGrid.events);
-        });
-      }
-      
-      // Debug function to show localStorage content
-      function showStorage() {
-        const output = document.getElementById('debug-output');
-        const storageItems = {};
-        
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key.startsWith('yearPlanner_')) {
-            storageItems[key] = JSON.parse(localStorage.getItem(key));
-          }
-        }
-        
-        output.innerHTML = '<pre>' + JSON.stringify(storageItems, null, 2) + '</pre>';
-      }
-      
-      // Debug function to clear all events
-      function clearStorage() {
-        const app = window.yearPlannerApp;
-        
-        if (app && app.storageAdapter) {
-          app.storageAdapter.clearAllData().then(() => {
-            console.log('Storage cleared');
-            document.getElementById('debug-output').innerHTML = 'All events cleared from storage';
-            app.loadYear(app.currentYear);
-          });
-        } else {
-          document.getElementById('debug-output').innerHTML = 'App not initialized yet';
-        }
-      }
-      
-      // Set up debug buttons
-      document.getElementById('debug-create-event').addEventListener('click', createTestEvent);
-      document.getElementById('debug-clear-storage').addEventListener('click', clearStorage);
-      document.getElementById('debug-show-storage').addEventListener('click', showStorage);
-    }, 1000);
-  </script>
+                    // Log event details
+                    console.log('Creating test event:', testEvent);
+                    document.getElementById('debug-output').innerHTML =
+                        'Creating test event: ' +
+                        JSON.stringify(testEvent, null, 2);
 
-  <!-- Load JavaScript modules -->
-  <script type="module" src="js/app.js?v=1.1.0"></script>
-</body>
+                    // Save the event using the app
+                    app.handleEventSave(testEvent).then(() => {
+                        console.log('Test event saved successfully');
+                        document.getElementById('debug-output').innerHTML +=
+                            '<br><br>Test event saved successfully';
+
+                        // Print localStorage content for yearPlanner_events
+                        const yearKey = app.storageAdapter.getYearKey(
+                            today.getFullYear(),
+                        );
+                        console.log(
+                            'Storage content:',
+                            localStorage.getItem(yearKey),
+                        );
+
+                        // Check if the event appears in the app events list
+                        console.log('App events:', app.yearPlanner.events);
+
+                        // Check if the event appears in the grid events list
+                        console.log('Grid events:', app.yearPlannerGrid.events);
+                    });
+                }
+
+                // Debug function to show localStorage content
+                function showStorage() {
+                    const output = document.getElementById('debug-output');
+                    const storageItems = {};
+
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key.startsWith('yearPlanner_')) {
+                            storageItems[key] = JSON.parse(
+                                localStorage.getItem(key),
+                            );
+                        }
+                    }
+
+                    output.innerHTML =
+                        '<pre>' +
+                        JSON.stringify(storageItems, null, 2) +
+                        '</pre>';
+                }
+
+                // Debug function to clear all events
+                function clearStorage() {
+                    const app = window.yearPlannerApp;
+
+                    if (app && app.storageAdapter) {
+                        app.storageAdapter.clearAllData().then(() => {
+                            console.log('Storage cleared');
+                            document.getElementById('debug-output').innerHTML =
+                                'All events cleared from storage';
+                            app.loadYear(app.currentYear);
+                        });
+                    } else {
+                        document.getElementById('debug-output').innerHTML =
+                            'App not initialized yet';
+                    }
+                }
+
+                // Set up debug buttons
+                document
+                    .getElementById('debug-create-event')
+                    .addEventListener('click', createTestEvent);
+                document
+                    .getElementById('debug-clear-storage')
+                    .addEventListener('click', clearStorage);
+                document
+                    .getElementById('debug-show-storage')
+                    .addEventListener('click', showStorage);
+            }, 1000);
+        </script>
+
+        <!-- Load JavaScript modules -->
+        <script type="module" src="js/app.js?v=1.1.0"></script>
+    </body>
 </html>
