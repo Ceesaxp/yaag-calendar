@@ -15,7 +15,7 @@ See the [Year Planner Design Document](doc/design.md) for detailed design inform
 - **Domain-Driven:** Clear separation between domain models, services, and presentation
 
 ### Core Components
-- `YearPlannerGrid`: Main calendar grid component (36×13 grid for entire year)
+- `YearPlannerGrid`: Main calendar grid component (38×13 grid for entire year, accommodating all month layouts)
 - `EventEditorModal`: Modal dialog for creating and editing events
 
 ### Key Services
