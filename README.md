@@ -34,3 +34,38 @@ See the [Year Planner Design Document](doc/design.md) for detailed design inform
 - Public holiday special positioning (always in top lane)
 - Visual indicators for special event types (recurring, PM starts, AM ends)
 - Local storage persistence with export/import capability
+
+## Motivation
+
+The Year Planner was created to address the need for a high-level planning tool that provides a comprehensive annual view of events, holidays, and recurring commitments. It is designed to be a lightweight, standalone application that can be used alongside traditional calendar applications to provide a macro-level perspective on time organization.
+
+## Usage
+
+### Adding Events
+
+1. Click on a cell in the grid to create a new event
+2. Fill in the event details in the modal dialog
+3. Click "Save" to add the event to the calendar
+
+### Editing Events
+
+1. Click on an existing event to open the edit dialog
+2. Modify the event details as needed
+3. Click "Save" to update the event
+
+### Deleting Events
+
+1. Click on an existing event to open the edit dialog
+2. Click "Delete" to remove the event from the calendar
+
+### Exporting/Importing Data
+
+1. Click on the "Export" button to download a JSON file of the current calendar data
+2. To import data, click on the "Import" button and select the JSON file to load
+
+### PDF Export
+
+There are two ways of exporting the calendar to a PDF file:
+
+1. Click on the "Export PDF" button to generate a PDF file of the current calendar view
+2. Use File > Print in the browser and select "Save as PDF" as the destination (a custom CSS print stylesheet is used for optimal layout)
