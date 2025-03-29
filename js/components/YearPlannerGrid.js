@@ -94,17 +94,17 @@ export class YearPlannerGrid extends HTMLElement {
         .weekday-name {
           font-size: 0.9em; /* 10% smaller font for weekday names */
         }
-        
+
         .weekend-header {
           background-color: #f8f3eb; /* Light cream background for weekend headers */
         }
-        
+
         .day-cell {
           cursor: pointer;
           position: relative;
           overflow: visible;
         }
-        
+
         .day-cell.weekend {
           background-color: #fcf9f2; /* Light cream background for weekend days */
         }
@@ -392,26 +392,26 @@ export class YearPlannerGrid extends HTMLElement {
     const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     // Calculate total number of columns needed (5 weeks + 2 extra days = 37 columns)
     const totalDaysToRender = 37;
-    
+
     for (let i = 0; i < totalDaysToRender; i++) {
       const dayIndex = i % 7; // Get day of week (0-6)
       const dayHeader = document.createElement('div');
       dayHeader.className = 'header-cell';
       dayHeader.setAttribute('part', 'header-cell');
-      
+
       // Add weekend class for Saturday and Sunday
       if (dayIndex === 5 || dayIndex === 6) {
         dayHeader.classList.add('weekend-header');
         dayHeader.setAttribute('part', 'header-cell weekend-header');
       }
-      
+
       // Create smaller font for day names
       const daySpan = document.createElement('span');
       daySpan.className = 'weekday-name';
       daySpan.setAttribute('part', 'weekday-name');
       daySpan.textContent = weekdays[dayIndex];
       dayHeader.appendChild(daySpan);
-      
+
       grid.appendChild(dayHeader);
     }
   }
@@ -478,11 +478,11 @@ export class YearPlannerGrid extends HTMLElement {
           // Store data attributes for identifying the cell
           dayCell.dataset.month = month;
           dayCell.dataset.day = dayNumber;
-          
+
           // Get the day of week to check for weekends
           const cellDate = new Date(this._year, month, dayNumber);
           const dayOfWeek = cellDate.getDay(); // 0 = Sunday, 6 = Saturday
-          
+
           // Add weekend class for Saturday (6) and Sunday (0)
           if (dayOfWeek === 0 || dayOfWeek === 6) {
             dayCell.classList.add('weekend');
@@ -946,7 +946,7 @@ export class YearPlannerGrid extends HTMLElement {
           ? layoutEvent.title.substring(0, 10) + '...'
           : layoutEvent.title;
       segmentEl.textContent = '⟼ ' + briefTitle;
-      
+
       // Add minimal indicators for middle segments
       if (layoutEvent.isRecurring || layoutEvent.startsPM || layoutEvent.endsAM) {
         const miniIndicator = document.createElement('span');
@@ -956,7 +956,7 @@ export class YearPlannerGrid extends HTMLElement {
         miniIndicator.style.position = 'absolute';
         miniIndicator.style.right = '2px';
         miniIndicator.style.top = '1px';
-        
+
         if (layoutEvent.isRecurring) {
           const icon = document.createElement('span');
           icon.className = 'event-icon recurring-icon';
@@ -964,7 +964,7 @@ export class YearPlannerGrid extends HTMLElement {
           icon.textContent = '↻';
           miniIndicator.appendChild(icon);
         }
-        
+
         segmentEl.appendChild(miniIndicator);
       }
     } else if (segment.isLastSegment) {
@@ -1299,11 +1299,11 @@ export class YearPlannerGrid extends HTMLElement {
         (currentDate - prevDate) / (1000 * 60 * 60 * 24),
       );
 
-      if (diffDays === 1 && prevDate.getDay() !== 0) {
-        // Same week, add to current group
+      if (diffDays === 1) {
+        // Consecutive days, add to current group regardless of week boundary
         currentGroup.push(currentCell);
       } else {
-        // New week or non-consecutive day, start a new group
+        // Non-consecutive days, start a new group
         weekGroups.push(currentGroup);
         currentGroup = [currentCell];
       }
