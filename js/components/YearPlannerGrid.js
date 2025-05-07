@@ -1280,6 +1280,46 @@ export class YearPlannerGrid extends HTMLElement {
    * @private
    */
   _groupCellsByWeek(cells) {
+    console.log('YearPlannerGrid: Grouping cells by week');
+    // Sort cells by date first to ensure correct order
+    cells.sort((a, b) => {
+      const aMonth = parseInt(a.dataset.month, 10);
+      const aDay = parseInt(a.dataset.day, 10);
+      const bMonth = parseInt(b.dataset.month, 10);
+      const bDay = parseInt(b.dataset.day, 10);
+
+      if (aMonth !== bMonth) return aMonth - bMonth;
+      return aDay - bDay;
+    });
+
+    // Check if all cells form a continuous date range
+    let isContiguous = true;
+    for (let i = 1; i < cells.length; i++) {
+      const prevCell = cells[i - 1];
+      const currentCell = cells[i];
+
+      const prevDate = new Date(this._year, parseInt(prevCell.dataset.month, 10), parseInt(prevCell.dataset.day, 10));
+      const currentDate = new Date(this._year, parseInt(currentCell.dataset.month, 10), parseInt(currentCell.dataset.day, 10));
+
+      // Calculate difference in days
+      const timeDiff = currentDate.getTime() - prevDate.getTime();
+      const diffDays = Math.round(timeDiff / (1000 * 60 * 60 * 24));
+
+      if (diffDays !== 1) {
+        isContiguous = false;
+        break;
+      }
+    }
+
+    // If all days are contiguous, return as a single group
+    if (isContiguous && cells.length > 0) {
+      console.log("Single DIV")
+      return [cells];
+    }
+
+    console.log("Multiple DIV")
+
+    // Otherwise splits
     const weekGroups = [];
     let currentGroup = [cells[0]];
 
