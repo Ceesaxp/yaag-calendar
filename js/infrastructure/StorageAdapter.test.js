@@ -44,9 +44,6 @@ class LocalStorageMock {
 // Only set up mock if running in Node environment
 if (typeof localStorage === 'undefined') {
   global.localStorage = new LocalStorageMock();
-  global.crypto = {
-    randomUUID: () => Math.random().toString(36).substring(2, 15),
-  };
 }
 
 // Test function to validate the StorageAdapter
