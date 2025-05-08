@@ -57,7 +57,16 @@ class StorageAdapter {
         return null;
       }
 
-      return this._deserialize(serialized);
+      // Deserialize JSON into plain object
+      const data = this._deserialize(serialized);
+      // Rehydrate into YearPlanner and Event instances for correct types
+      const planner = new YearPlanner(
+        data.year,
+        Array.isArray(data.events)
+          ? data.events.map((ev) => new Event(ev))
+          : []
+      );
+      return planner;
     } catch (error) {
       console.error('Failed to load YearPlanner:', error);
       return null;
