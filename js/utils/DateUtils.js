@@ -87,3 +87,35 @@ export function getDaysBetween(startDate, endDate) {
   // Add 1 to include both start and end dates
   return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
 }
+
+/**
+ * Get day of week for a UTC date using Monday=0, Sunday=6 format
+ *
+ * IMPORTANT: This function uses getUTCDay() to avoid timezone issues.
+ * When dates are stored as UTC midnight, using getDay() in negative UTC
+ * offset timezones would return the previous day's day-of-week.
+ *
+ * @param {Date} date - Date object (should be normalized to UTC midnight)
+ * @returns {number} Day of week (0=Monday, 1=Tuesday, ..., 6=Sunday)
+ */
+export function getDayOfWeekUTC(date) {
+  // JavaScript getUTCDay() returns 0 for Sunday, 1 for Monday, ..., 6 for Saturday
+  // We need to convert to: 0=Monday, 1=Tuesday, ..., 6=Sunday
+  const utcDay = date.getUTCDay();
+  return utcDay === 0 ? 6 : utcDay - 1;
+}
+
+/**
+ * Get day of week from a local date using Monday=0, Sunday=6 format
+ *
+ * Use this for dates created with new Date(year, month, day) which are in local time.
+ *
+ * @param {Date} date - Date object in local time
+ * @returns {number} Day of week (0=Monday, 1=Tuesday, ..., 6=Sunday)
+ */
+export function getDayOfWeekLocal(date) {
+  // JavaScript getDay() returns 0 for Sunday, 1 for Monday, ..., 6 for Saturday
+  // We need to convert to: 0=Monday, 1=Tuesday, ..., 6=Sunday
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+}
