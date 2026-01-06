@@ -578,9 +578,8 @@ export class YearPlannerApp {
         positionedEvents,
       );
 
-      // Update the year planner grid
-      this.yearPlannerGrid.year = year;
-      this.yearPlannerGrid.events = positionedEvents;
+      // Update the year planner grid using batch method to prevent double render/flicker
+      this.yearPlannerGrid.setYearAndEvents(year, positionedEvents);
 
       console.log(`Loaded ${positionedEvents.length} events for year ${year}`);
     } catch (error) {

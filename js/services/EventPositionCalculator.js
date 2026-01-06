@@ -482,14 +482,7 @@ class EventPositionCalculator {
   _calculateSameMonthPosition(event, month, startDate, startDay, endDate, endDay) {
     // Get the day span (number of days)
     const daySpan = this._getDaySpan(month, startDate, endDate);
-    
-    // CRITICAL FIX: Special handling for May 12, 2025 (or similar Mondays)
-    // May 12, 2025 is a Monday
-    if (month === 4 && startDate === 12 && this.year === 2025) { // May is month 4 (0-indexed)
-      console.log("Detected May 12, 2025 in _calculateSameMonthPosition - explicitly setting to Monday (0)");
-      startDay = 0; // Monday
-    }
-    
+
     // Check if event spans multiple weeks
     if (daySpan > 7 || (startDay > endDay && daySpan > 1)) {
       // Multi-week event within same month
@@ -578,13 +571,6 @@ class EventPositionCalculator {
    * @private
    */
   _calculateMultiMonthPosition(event, startMonth, startDate, startDay, endMonth, endDate, endDay) {
-    // CRITICAL FIX: Special handling for May 12, 2025 (or similar Mondays)
-    // May 12, 2025 is a Monday
-    if (startMonth === 4 && startDate === 12 && this.year === 2025) { // May is month 4 (0-indexed)
-      console.log("Detected May 12, 2025 in _calculateMultiMonthPosition - explicitly setting to Monday (0)");
-      startDay = 0; // Monday
-    }
-    
     // Calculate all segments across multiple months
     const segments = this._calculateEventSegments(
       startMonth, startDate, startDay,
@@ -672,18 +658,7 @@ class EventPositionCalculator {
           segEndDay = boundary.endDayOfWeek;
           segmentEndDate = new Date(this.year, month, boundary.end);
         }
-        
-        // CRITICAL FIX: Ensure May 12, 2025 is calculated correctly
-        // May 12, 2025 is a Monday (JS day 1, our day 0)
-        // Explicitly check for this specific date or similar cases
-        if (month === 4 && startDate === 12 && this.year === 2025) { // May is month 4 (0-indexed)
-          console.log("Detected May 12, 2025 - explicitly setting to Monday (0)");
-          startDay = 0; // Monday
-          if (segmentStartDate.getDate() === 12) {
-            segStartDay = 0; // Explicitly set to Monday
-          }
-        }
-        
+
         // Determine if this is the first or last segment of the event
         const isFirstSegment = (month === startMonth && boundary.start <= startDate);
         const isLastSegment = (month === endMonth && boundary.end >= endDate);
@@ -932,19 +907,18 @@ class EventPositionCalculator {
   
   /**
    * Get the day of week (0-6, where 0 is Monday, 6 is Sunday)
-   * @param {Date} date - The date
-   * @returns {number} Day of week (0-6)
+   *
+   * IMPORTANT: Uses getUTCDay() because event dates are stored as UTC midnight.
+   * Using getDay() would return incorrect results in negative UTC offset timezones.
+   *
+   * @param {Date} date - The date (should be normalized to UTC midnight)
+   * @returns {number} Day of week (0-6, Monday=0, Sunday=6)
    * @private
    */
   _getDayOfWeek(date) {
-    // Convert from JS day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
-    let day = date.getDay() - 1;
-    if (day < 0) day = 6;
-    
-    // Debug logging
-    console.log(`EventPositionCalculator._getDayOfWeek: ${date.toISOString()} => JS day: ${date.getDay()} => Our day: ${day}`);
-    
-    return day;
+    // Convert from JS UTC day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
+    const utcDay = date.getUTCDay();
+    return utcDay === 0 ? 6 : utcDay - 1;
   }
   
   /**

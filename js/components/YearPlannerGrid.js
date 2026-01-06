@@ -19,9 +19,12 @@ export class YearPlannerGrid extends HTMLElement {
 
   // Public properties
   set year(value) {
-    this._year = parseInt(value, 10);
-    this._recalculateLayout();
-    this._render();
+    const newYear = parseInt(value, 10);
+    if (this._year !== newYear) {
+      this._year = newYear;
+      this._recalculateLayout();
+      this._scheduleRender();
+    }
   }
 
   get year() {
@@ -32,20 +35,46 @@ export class YearPlannerGrid extends HTMLElement {
     if (!Array.isArray(value)) {
       throw new Error('Events must be an array');
     }
-
-    console.log('YearPlannerGrid: Setting events', value.length, value);
     this._events = value;
     this._recalculateLayout();
-    console.log(
-      'YearPlannerGrid: After recalculating layout',
-      this._layoutEvents.length,
-      this._layoutEvents,
-    );
-    this._render();
+    this._scheduleRender();
   }
 
   get events() {
     return this._events;
+  }
+
+  /**
+   * Update year and events in a single batch operation to prevent double rendering.
+   * This is the preferred method when both values need to change.
+   *
+   * @param {number} year - The year to display
+   * @param {Array} events - Array of positioned events to render
+   */
+  setYearAndEvents(year, events) {
+    if (!Array.isArray(events)) {
+      throw new Error('Events must be an array');
+    }
+    this._year = parseInt(year, 10);
+    this._events = events;
+    this._recalculateLayout();
+    this._render(); // Immediate render for batch updates
+  }
+
+  /**
+   * Schedule a render using requestAnimationFrame to coalesce multiple updates.
+   * This prevents flickering when year and events are set separately.
+   * @private
+   */
+  _scheduleRender() {
+    if (this._renderScheduled) {
+      return; // Already scheduled
+    }
+    this._renderScheduled = true;
+    requestAnimationFrame(() => {
+      this._renderScheduled = false;
+      this._render();
+    });
   }
 
   // Private methods
@@ -617,14 +646,9 @@ export class YearPlannerGrid extends HTMLElement {
                                   eventStartDateObj.getDate() : 1;
                                   
             // If this is the last month of the event, use actual event end date
-            let segmentEndDate = month === eventEndDateObj.getMonth() ? 
+            let segmentEndDate = month === eventEndDateObj.getMonth() ?
                                eventEndDateObj.getDate() : new Date(this._year, month + 1, 0).getDate();
-            
-            // Special handling for days on May 12, 2025 and other possibly problematic dates
-            if (month === 4 && segmentStartDate === 12 && this._year === 2025) {
-              console.log(`Special handling for May 12, 2025 in segment cell filtering`);
-            }
-            
+
             // Always check the actual date against the event's date range, prioritizing the date match
             // rather than just the day of week match
             const isDateInRange = 
@@ -688,26 +712,8 @@ export class YearPlannerGrid extends HTMLElement {
           // Get event start and end dates for proper date comparison
           const eventStartDateObj = new Date(layoutEvent.startDate);
           const eventEndDateObj = new Date(layoutEvent.endDate);
-          
-          // CRITICAL FIX: Special handling for May 12, 2025 and other problematic dates
-          let forceDateInclusion = false;
-          
-          // If this is exactly the event's start date, force inclusion
-          if (month === eventStartDateObj.getMonth() && day === eventStartDateObj.getDate() && 
-              date.getFullYear() === eventStartDateObj.getFullYear()) {
-            forceDateInclusion = true;
-            console.log(`Forcing inclusion of start date: ${date.toISOString()}`);
-          }
-          
-          // Special handling for May 12 specifically
-          if (month === 4 && day === 12 && this._year === 2025) {
-            console.log(`Special handling for May 12, 2025 in simple event cell filtering`);
-            if (eventStartDateObj.getDate() === 12 && eventStartDateObj.getMonth() === 4) {
-              forceDateInclusion = true;
-            }
-          }
-          
-          // Fix: Compare dates by their day, month, and year components only
+
+          // Compare dates by their day, month, and year components only
           const isSameOrAfterStartDate =
             date.getFullYear() > layoutEvent.startDate.getFullYear() ||
             (date.getFullYear() === layoutEvent.startDate.getFullYear() &&
@@ -722,15 +728,8 @@ export class YearPlannerGrid extends HTMLElement {
                 (date.getMonth() === layoutEvent.endDate.getMonth() &&
                   date.getDate() <= layoutEvent.endDate.getDate())));
 
-          const isInRange = forceDateInclusion || (isSameOrAfterStartDate && isSameOrBeforeEndDate);
-
-          // Debug: Log date comparison for single-day/single-week events
-          console.log(
-            `YearPlannerGrid: Evaluating cell for simple event - event:${layoutEvent.id} cell date:${date.toISOString()} (${month}/${day}) event range:${layoutEvent.startDate.toISOString()} - ${layoutEvent.endDate.toISOString()} matches:${isInRange}, forced=${forceDateInclusion}`,
-          );
-
           // Check if this date is within the event's range
-          return isInRange;
+          return isSameOrAfterStartDate && isSameOrBeforeEndDate;
         });
 
         if (eventCells.length === 0) {
@@ -1417,21 +1416,18 @@ export class YearPlannerGrid extends HTMLElement {
 
   /**
    * Get the day of week (0-6, where 0 is Monday, 6 is Sunday)
-   * @param {Date} date - The date
-   * @returns {number} Day of week (0-6)
+   *
+   * IMPORTANT: Uses getUTCDay() because event dates are stored as UTC midnight.
+   * Using getDay() would return incorrect results in negative UTC offset timezones.
+   *
+   * @param {Date} date - The date (should be normalized to UTC midnight)
+   * @returns {number} Day of week (0-6, Monday=0, Sunday=6)
    * @private
    */
   _getDayOfWeek(date) {
-    // Convert from JS day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
-    let day = date.getDay() - 1;
-    if (day < 0) day = 6;
-
-    // Debug logging
-    console.log(
-      `_getDayOfWeek: ${date.toISOString()} => JS day: ${date.getDay()} => Our day: ${day}`,
-    );
-
-    return day;
+    // Convert from JS UTC day (0=Sunday, 6=Saturday) to our format (0=Monday, 6=Sunday)
+    const utcDay = date.getUTCDay();
+    return utcDay === 0 ? 6 : utcDay - 1;
   }
 
   _setupEventListeners() {
