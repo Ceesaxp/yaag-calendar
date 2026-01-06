@@ -75,6 +75,50 @@ EventLayout extends Event {
 }
 ```
 
+## Date Handling Strategy
+
+### Design Principle: Timezone-Independent Calendar Dates
+
+Events are stored as **calendar dates**, not moments in time. An event on "January 12"
+must always appear on January 12, regardless of which timezone it was created in or
+viewed from.
+
+### UTC Midnight Storage Pattern
+
+All dates are normalized to UTC midnight for consistent storage and retrieval:
+
+```
+User Input (Tokyo)     Storage                  Display (San Francisco)
+"January 12, 2025" --> "2025-01-12T00:00:00Z" --> "January 12, 2025"
+```
+
+### Implementation Rules
+
+1. **Storing dates**: Extract local calendar components, create UTC midnight
+   ```javascript
+   Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate())
+   ```
+
+2. **Reading dates**: Always use UTC methods for stored dates
+   ```javascript
+   date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), date.getUTCDay()
+   ```
+
+3. **Day-of-week calculation**: Use `getUTCDay()` to determine grid column placement
+
+### Rationale
+
+Without this pattern, a date stored as "2025-01-12T00:00:00Z" would be interpreted as
+January 11 in negative UTC offset timezones (e.g., Americas), causing events to shift
+by one day when viewed across different timezones.
+
+### Helper Functions (js/utils/DateUtils.js)
+
+- `normalizeDateToUTC(date)` - Convert any date to UTC midnight
+- `createDateOnly(year, month, day)` - Create a UTC midnight date
+- `getDayOfWeekUTC(date)` - Day of week (Monday=0) from UTC date
+- `getDayOfWeekLocal(date)` - Day of week from local date
+
 ## Layout Engine
 
 ### Grid Structure
