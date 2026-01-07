@@ -132,6 +132,8 @@ export class YearPlannerGrid extends HTMLElement {
           cursor: pointer;
           position: relative;
           overflow: visible;
+          /* Create stacking context for proper z-index handling without compositor layer issues */
+          isolation: isolate;
         }
 
         .day-cell.weekend {
@@ -183,10 +185,6 @@ export class YearPlannerGrid extends HTMLElement {
           text-overflow: ellipsis;
           cursor: pointer;
           z-index: 10;
-          /* Fix for mobile rendering issues */
-          transform: translateZ(0);
-          will-change: transform;
-          backface-visibility: hidden;
         }
 
         .event.holiday {
@@ -221,11 +219,7 @@ export class YearPlannerGrid extends HTMLElement {
           cursor: pointer;
           z-index: 10;
           box-sizing: border-box;
-          transition: all 0.15s ease-in-out;
-          /* Fix for mobile rendering issues */
-          transform: translateZ(0);
-          will-change: transform;
-          backface-visibility: hidden;
+          transition: filter 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
 
         .event-segment.holiday {
@@ -328,7 +322,6 @@ export class YearPlannerGrid extends HTMLElement {
           filter: brightness(1.05);
           box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
           z-index: 20;
-          transform: translateY(-1px);
         }
 
         /* Connected segments highlight */
