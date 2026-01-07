@@ -15,6 +15,11 @@ export class YearPlannerGrid extends HTMLElement {
   connectedCallback() {
     this._render();
     this._setupEventListeners();
+    this._setupScrollRepaintHandler();
+  }
+
+  disconnectedCallback() {
+    this._cleanupScrollRepaintHandler();
   }
 
   // Public properties
@@ -1442,6 +1447,97 @@ export class YearPlannerGrid extends HTMLElement {
         });
       }
     }, 0);
+  }
+
+  /**
+   * Set up scroll event handler to force repaint of event elements.
+   * Mobile browsers sometimes fail to repaint absolutely positioned elements
+   * with overflow:visible during scroll.
+   * @private
+   */
+  _setupScrollRepaintHandler() {
+    // Track scroll state for repaint optimization
+    this._scrollRepaintPending = false;
+    this._lastScrollTop = 0;
+
+    // Scroll handler that forces repaint of events
+    this._scrollRepaintHandler = () => {
+      // Skip if repaint already pending
+      if (this._scrollRepaintPending) return;
+
+      this._scrollRepaintPending = true;
+
+      requestAnimationFrame(() => {
+        this._forceEventRepaint();
+        this._scrollRepaintPending = false;
+      });
+    };
+
+    // Listen on window for page scroll (most common case)
+    window.addEventListener('scroll', this._scrollRepaintHandler, { passive: true });
+
+    // Also listen on the grid itself in case it's in a scrollable container
+    const grid = this.shadowRoot.getElementById('grid');
+    if (grid) {
+      grid.addEventListener('scroll', this._scrollRepaintHandler, { passive: true });
+    }
+
+    // Listen on any scrollable parent
+    let parent = this.parentElement;
+    while (parent) {
+      const style = window.getComputedStyle(parent);
+      if (style.overflow === 'auto' || style.overflow === 'scroll' ||
+          style.overflowY === 'auto' || style.overflowY === 'scroll') {
+        parent.addEventListener('scroll', this._scrollRepaintHandler, { passive: true });
+        this._scrollableParent = parent;
+        break;
+      }
+      parent = parent.parentElement;
+    }
+  }
+
+  /**
+   * Clean up scroll event handlers
+   * @private
+   */
+  _cleanupScrollRepaintHandler() {
+    if (this._scrollRepaintHandler) {
+      window.removeEventListener('scroll', this._scrollRepaintHandler);
+
+      const grid = this.shadowRoot.getElementById('grid');
+      if (grid) {
+        grid.removeEventListener('scroll', this._scrollRepaintHandler);
+      }
+
+      if (this._scrollableParent) {
+        this._scrollableParent.removeEventListener('scroll', this._scrollRepaintHandler);
+        this._scrollableParent = null;
+      }
+
+      this._scrollRepaintHandler = null;
+    }
+  }
+
+  /**
+   * Force browser to repaint event elements.
+   * This fixes mobile scroll issues where overflow content isn't repainted.
+   * @private
+   */
+  _forceEventRepaint() {
+    const events = this.shadowRoot.querySelectorAll('.event, .event-segment');
+    if (events.length === 0) return;
+
+    // Force a repaint by toggling a tiny transform
+    // This is more performant than reading layout properties
+    events.forEach(event => {
+      // Toggle a micro-transform to force repaint without layout thrashing
+      const currentTransform = event.style.transform;
+      if (currentTransform === 'translateZ(0.1px)') {
+        event.style.transform = 'translateZ(0)';
+      } else {
+        event.style.transform = 'translateZ(0.1px)';
+      }
+    });
   }
 
   _recalculateLayout() {
